@@ -35,7 +35,7 @@ $fileName = "KCALcolatore-$(Get-Date -Format 'yyyyMMdd-HHmmss').apk"
 
 # Forza TLS 1.2 per connessioni stabili in PowerShell su Windows
 try {
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {
     Write-Host "Nota: Impossibile impostare TLS 1.2 in modo nativo, proseguo con i default di sistema." -ForegroundColor Cyan
 }
@@ -43,21 +43,21 @@ try {
 $uploaded = $false
 $cleanResponse = ""
 
-# Prova 1: transfer.sh
+# Prova 1: transfer.sh (aumentato timeout a 10 minuti per supportare file grandi su connessioni standard)
 try {
     Write-Host "Tentativo di caricamento su transfer.sh..." -ForegroundColor White
-    $response = Invoke-RestMethod -Uri "https://transfer.sh/$fileName" -Method Put -InFile $apkPath -Headers @{"Max-Days"="7"} -TimeoutSec 30
+    $response = Invoke-RestMethod -Uri "https://transfer.sh/$fileName" -Method Put -InFile $apkPath -Headers @{"Max-Days"="7"} -TimeoutSec 600
     $cleanResponse = $response.Trim()
     $uploaded = $true
 } catch {
-    Write-Host "Transfer.sh non raggiungibile. Tento il server di riserva..." -ForegroundColor Yellow
+    Write-Host "Transfer.sh non raggiungibile o timeout. Tento il server di riserva..." -ForegroundColor Yellow
 }
 
-# Prova 2: bashupload.com (Fallback)
+# Prova 2: bashupload.com (Fallback con timeout a 10 minuti)
 if (!$uploaded) {
     try {
         Write-Host "Tentativo di caricamento su bashupload.com..." -ForegroundColor White
-        $response = Invoke-RestMethod -Uri "https://bashupload.com/$fileName" -Method Put -InFile $apkPath -TimeoutSec 30
+        $response = Invoke-RestMethod -Uri "https://bashupload.com/$fileName" -Method Put -InFile $apkPath -TimeoutSec 600
         $rawResponse = $response.Trim()
         
         # Estraiamo il link https dalla risposta testuale di bashupload
