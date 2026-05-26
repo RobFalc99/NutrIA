@@ -45,6 +45,64 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _showAddMealOptions(BuildContext context) {
+    final hour = DateTime.now().hour;
+    String defaultMeal = 'Colazione';
+    if (hour >= 11 && hour < 15) {
+      defaultMeal = 'Pranzo';
+    } else if (hour >= 15 && hour < 19) {
+      defaultMeal = 'Spuntini';
+    } else if (hour >= 19) {
+      defaultMeal = 'Cena';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF16161D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return AddMealOptionsSheet(defaultMeal: defaultMeal);
+      },
+    );
+  }
+
+  Widget _buildAddButton() {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          _showAddMealOptions(context);
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.add_circle_outline_rounded,
+                color: _accentCyan,
+                size: 26,
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Aggiungi',
+                style: TextStyle(
+                  color: _accentCyan,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomNavBar() {
     return Container(
       decoration: BoxDecoration(
@@ -66,6 +124,7 @@ class _MainScreenState extends State<MainScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             children: [
+              _buildAddButton(),
               _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
               _buildNavItem(1, Icons.manage_accounts_rounded, Icons.manage_accounts_outlined, 'Profilo'),
             ],

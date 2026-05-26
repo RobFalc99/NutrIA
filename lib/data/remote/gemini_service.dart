@@ -86,16 +86,24 @@ Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown, senza blocchi di cod
 
   List<MealItem> _parseJsonToMealItems(String jsonString) {
     try {
-      // Pulisce la stringa da eventuali blocchi markdown (es. ```json ... ```)
       String cleanJson = jsonString.trim();
-      if (cleanJson.startsWith('```json')) {
-        cleanJson = cleanJson.substring(7);
-      }
-      if (cleanJson.startsWith('```')) {
-        cleanJson = cleanJson.substring(3);
-      }
-      if (cleanJson.endsWith('```')) {
-        cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+      
+      // Estrae in modo ultra-robusto il blocco JSON racchiuso tra parentesi quadre
+      final start = cleanJson.indexOf('[');
+      final end = cleanJson.lastIndexOf(']');
+      if (start != -1 && end != -1 && end > start) {
+        cleanJson = cleanJson.substring(start, end + 1);
+      } else {
+        // Fallback classico se non trova [ ]
+        if (cleanJson.startsWith('```json')) {
+          cleanJson = cleanJson.substring(7);
+        }
+        if (cleanJson.startsWith('```')) {
+          cleanJson = cleanJson.substring(3);
+        }
+        if (cleanJson.endsWith('```')) {
+          cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+        }
       }
       
       final List<dynamic> list = json.decode(cleanJson.trim());

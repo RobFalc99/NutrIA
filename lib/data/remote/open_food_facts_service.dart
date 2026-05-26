@@ -24,8 +24,13 @@ class OpenFoodFactsService {
 
   /// Cerca prodotti tramite testo
   Future<List<Food>> searchProducts(String query) async {
-    final url = Uri.parse(
-        '$_baseUrl/cgi/search.pl?search_terms=$query&search_simple=1&action=process&json=1&page_size=20');
+    final url = Uri.https('world.openfoodfacts.org', '/cgi/search.pl', {
+      'search_terms': query,
+      'search_simple': '1',
+      'action': 'process',
+      'json': '1',
+      'page_size': '20',
+    });
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {

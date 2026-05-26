@@ -419,12 +419,6 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddMealOptions(context, 'Colazione'),
-        backgroundColor: accentPink,
-        elevation: 6,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
     );
   }
 
