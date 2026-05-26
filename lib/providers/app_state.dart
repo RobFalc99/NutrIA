@@ -67,7 +67,12 @@ class AppState extends ChangeNotifier {
       _weeklyLogs.add(currentDayLog!);
     }
 
-    // Carica cibi online iniziali
+    // *** NOTIFICA SUBITO dopo aver caricato dati locali ***
+    // Così Dashboard e ProfileScreen si aggiornano immediatamente
+    // senza dover aspettare il completamento della chiamata di rete.
+    notifyListeners();
+
+    // Carica cibi online (operazione di rete, in background)
     await loadOnlineData();
   }
 
