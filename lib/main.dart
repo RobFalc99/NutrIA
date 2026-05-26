@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -12,11 +13,16 @@ import 'ui/screens/add_meal_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  String? path;
+  if (!kIsWeb) {
+    final dir = await getApplicationDocumentsDirectory();
+    path = dir.path;
+  }
+
   // Inizializza Isar Database
-  final dir = await getApplicationDocumentsDirectory();
   final isar = await Isar.open(
     [UserProfileEntitySchema, DailyLogEntitySchema],
-    directory: dir.path,
+    directory: path ?? '',
   );
 
   runApp(

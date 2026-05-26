@@ -3,47 +3,109 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../data/local/entities/user_profile_entity.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  Widget build(BuildContext context) {
+    // Watches the AppState for changes. Rebuilds automatically when AppState notifies listeners.
+    final user = context.watch<AppState>().currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F0F13),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF00FFC2)),
+        ),
+      );
+    }
+
+    return ProfileForm(user: user);
+  }
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  // Controller inizializzati SOLO in didChangeDependencies - pattern Flutter corretto
-  final _formKey = GlobalKey<FormState>();
-
-  final _nameController       = TextEditingController();
-  final _caloriesController   = TextEditingController();
-  final _proteinsController   = TextEditingController();
-  final _carbsController      = TextEditingController();
-  final _fatsController       = TextEditingController();
-  final _fibersController     = TextEditingController();
-  final _apiKeyController     = TextEditingController();
-
-  String _trackingMode = 'standard';
-  bool   _use8020Mode  = true;
-  bool   _obscureApiKey = true;
-  bool   _initialized  = false;
+class ProfileForm extends StatefulWidget {
+  final UserProfileEntity user;
+  const ProfileForm({super.key, required this.user});
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Legge il profilo dal Provider e popola i controller UNA SOLA VOLTA
-    if (!_initialized) {
-      final user = context.read<AppState>().currentUser;
-      if (user != null) {
-        _nameController.text       = user.name;
-        _caloriesController.text   = user.goalCalories.toInt().toString();
-        _proteinsController.text   = user.goalProteins.toInt().toString();
-        _carbsController.text      = user.goalCarbs.toInt().toString();
-        _fatsController.text       = user.goalFats.toInt().toString();
-        _fibersController.text     = user.goalFibers.toInt().toString();
-        _apiKeyController.text     = user.geminiApiKey ?? '';
-        _trackingMode              = user.trackingMode;
-        _use8020Mode               = user.use8020Mode;
-        _initialized = true;
+  State<ProfileForm> createState() => _ProfileFormState();
+}
+
+class _ProfileFormState extends State<ProfileForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _nameController;
+  late final TextEditingController _caloriesController;
+  late final TextEditingController _proteinsController;
+  late final TextEditingController _carbsController;
+  late final TextEditingController _fatsController;
+  late final TextEditingController _fibersController;
+  late final TextEditingController _apiKeyController;
+
+  late String _trackingMode;
+  late bool _use8020Mode;
+  bool _obscureApiKey = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initControllers();
+  }
+
+  void _initControllers() {
+    _nameController = TextEditingController(text: widget.user.name);
+    _caloriesController = TextEditingController(text: widget.user.goalCalories.toInt().toString());
+    _proteinsController = TextEditingController(text: widget.user.goalProteins.toInt().toString());
+    _carbsController = TextEditingController(text: widget.user.goalCarbs.toInt().toString());
+    _fatsController = TextEditingController(text: widget.user.goalFats.toInt().toString());
+    _fibersController = TextEditingController(text: widget.user.goalFibers.toInt().toString());
+    _apiKeyController = TextEditingController(text: widget.user.geminiApiKey ?? '');
+
+    _trackingMode = widget.user.trackingMode;
+    _use8020Mode = widget.user.use8020Mode;
+  }
+
+  @override
+  void didUpdateWidget(ProfileForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.user != oldWidget.user) {
+      if (_nameController.text != widget.user.name) {
+        _nameController.text = widget.user.name;
+      }
+      final calStr = widget.user.goalCalories.toInt().toString();
+      if (_caloriesController.text != calStr) {
+        _caloriesController.text = calStr;
+      }
+      final protStr = widget.user.goalProteins.toInt().toString();
+      if (_proteinsController.text != protStr) {
+        _proteinsController.text = protStr;
+      }
+      final carbStr = widget.user.goalCarbs.toInt().toString();
+      if (_carbsController.text != carbStr) {
+        _carbsController.text = carbStr;
+      }
+      final fatStr = widget.user.goalFats.toInt().toString();
+      if (_fatsController.text != fatStr) {
+        _fatsController.text = fatStr;
+      }
+      final fibStr = widget.user.goalFibers.toInt().toString();
+      if (_fibersController.text != fibStr) {
+        _fibersController.text = fibStr;
+      }
+      final apiKeyStr = widget.user.geminiApiKey ?? '';
+      if (_apiKeyController.text != apiKeyStr) {
+        _apiKeyController.text = apiKeyStr;
+      }
+      if (_trackingMode != widget.user.trackingMode) {
+        setState(() {
+          _trackingMode = widget.user.trackingMode;
+        });
+      }
+      if (_use8020Mode != widget.user.use8020Mode) {
+        setState(() {
+          _use8020Mode = widget.user.use8020Mode;
+        });
       }
     }
   }
@@ -63,19 +125,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     final appState = context.read<AppState>();
-    final profile  = UserProfileEntity()
-      ..id            = appState.currentUser?.id ?? 1
-      ..name          = _nameController.text.trim()
-      ..goalCalories  = double.tryParse(_caloriesController.text) ?? 2000
-      ..goalProteins  = double.tryParse(_proteinsController.text) ?? 150
-      ..goalCarbs     = double.tryParse(_carbsController.text) ?? 200
-      ..goalFats      = double.tryParse(_fatsController.text) ?? 60
-      ..goalFibers    = double.tryParse(_fibersController.text) ?? 30
-      ..trackingMode  = _trackingMode
-      ..use8020Mode   = _use8020Mode
-      ..geminiApiKey  = _apiKeyController.text.trim().isEmpty
-                          ? null
-                          : _apiKeyController.text.trim();
+    final profile = UserProfileEntity()
+      ..id = appState.currentUser?.id ?? 1
+      ..name = _nameController.text.trim()
+      ..goalCalories = double.tryParse(_caloriesController.text) ?? 2000
+      ..goalProteins = double.tryParse(_proteinsController.text) ?? 150
+      ..goalCarbs = double.tryParse(_carbsController.text) ?? 200
+      ..goalFats = double.tryParse(_fatsController.text) ?? 60
+      ..goalFibers = double.tryParse(_fibersController.text) ?? 30
+      ..trackingMode = _trackingMode
+      ..use8020Mode = _use8020Mode
+      ..geminiApiKey = _apiKeyController.text.trim().isEmpty
+          ? null
+          : _apiKeyController.text.trim();
     appState.updateProfile(profile);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -86,39 +148,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── Build ───────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    // Se i dati non sono ancora pronti, mostra solo uno spinner
-    if (!_initialized) {
-      // Tenta di inizializzare ad ogni rebuild finché il profilo non è disponibile
-      final user = context.watch<AppState>().currentUser;
-      if (user != null && !_initialized) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() {
-            _nameController.text     = user.name;
-            _caloriesController.text = user.goalCalories.toInt().toString();
-            _proteinsController.text = user.goalProteins.toInt().toString();
-            _carbsController.text    = user.goalCarbs.toInt().toString();
-            _fatsController.text     = user.goalFats.toInt().toString();
-            _fibersController.text   = user.goalFibers.toInt().toString();
-            _apiKeyController.text   = user.geminiApiKey ?? '';
-            _trackingMode            = user.trackingMode;
-            _use8020Mode             = user.use8020Mode;
-            _initialized             = true;
-          });
-        });
-      }
-      return const Scaffold(
-        backgroundColor: Color(0xFF0F0F13),
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF00FFC2)),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F13),
       appBar: AppBar(
@@ -148,50 +179,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-
             // ── Modalità tracciamento ────────────────────────────────────────
-            _SectionTitle(title: 'Modalita\' di Tracciamento'),
+            const _SectionTitle(title: 'Modalita\' di Tracciamento'),
             const SizedBox(height: 10),
             Row(
               children: [
-                _ModeChip(label: 'Light',    value: 'light',    selected: _trackingMode, onTap: (v) => setState(() => _trackingMode = v)),
+                _ModeChip(label: 'Light', value: 'light', selected: _trackingMode, onTap: (v) => setState(() => _trackingMode = v)),
                 const SizedBox(width: 8),
                 _ModeChip(label: 'Standard', value: 'standard', selected: _trackingMode, onTap: (v) => setState(() => _trackingMode = v)),
                 const SizedBox(width: 8),
-                _ModeChip(label: 'Custom',   value: 'custom',   selected: _trackingMode, onTap: (v) => setState(() => _trackingMode = v)),
+                _ModeChip(label: 'Custom', value: 'custom', selected: _trackingMode, onTap: (v) => setState(() => _trackingMode = v)),
               ],
             ),
             const SizedBox(height: 24),
 
             // ── Dati utente ──────────────────────────────────────────────────
-            _SectionTitle(title: 'Dati Utente'),
+            const _SectionTitle(title: 'Dati Utente'),
             const SizedBox(height: 10),
             _Field(label: 'Nome', controller: _nameController, icon: Icons.person),
             const SizedBox(height: 12),
-            _Field(label: 'Calorie obiettivo (kcal)', controller: _caloriesController,
-                   icon: Icons.local_fire_department, numeric: true, suffix: 'kcal'),
+            _Field(label: 'Calorie obiettivo (kcal)', controller: _caloriesController, icon: Icons.local_fire_department, numeric: true, suffix: 'kcal'),
             const SizedBox(height: 12),
-            _Field(label: 'Proteine (g)', controller: _proteinsController,
-                   icon: Icons.fitness_center, numeric: true, suffix: 'g'),
+            _Field(label: 'Proteine (g)', controller: _proteinsController, icon: Icons.fitness_center, numeric: true, suffix: 'g'),
 
             if (_trackingMode != 'light') ...[
               const SizedBox(height: 12),
-              _Field(label: 'Carboidrati (g)', controller: _carbsController,
-                     icon: Icons.restaurant, numeric: true, suffix: 'g'),
+              _Field(label: 'Carboidrati (g)', controller: _carbsController, icon: Icons.restaurant, numeric: numericKeyboardType(), suffix: 'g'),
               const SizedBox(height: 12),
-              _Field(label: 'Grassi (g)', controller: _fatsController,
-                     icon: Icons.water_drop, numeric: true, suffix: 'g'),
+              _Field(label: 'Grassi (g)', controller: _fatsController, icon: Icons.water_drop, numeric: true, suffix: 'g'),
             ],
 
             if (_trackingMode == 'custom') ...[
               const SizedBox(height: 12),
-              _Field(label: 'Fibre (g)', controller: _fibersController,
-                     icon: Icons.grass, numeric: true, suffix: 'g'),
+              _Field(label: 'Fibre (g)', controller: _fibersController, icon: Icons.grass, numeric: true, suffix: 'g'),
             ],
             const SizedBox(height: 24),
 
             // ── Regola 80/20 ─────────────────────────────────────────────────
-            _SectionTitle(title: 'Regola 80/20'),
+            const _SectionTitle(title: 'Regola 80/20'),
             const SizedBox(height: 10),
             _ToggleCard(
               title: 'Abilita modalita\' 80/20',
@@ -202,7 +227,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
 
             // ── Gemini API ───────────────────────────────────────────────────
-            _SectionTitle(title: 'Chiave API Gemini (AI)'),
+            const _SectionTitle(title: 'Chiave API Gemini (AI)'),
             const SizedBox(height: 10),
             TextFormField(
               controller: _apiKeyController,
@@ -260,6 +285,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  bool numericKeyboardType() => true;
 }
 
 // ─── Widget ausiliari semplici ────────────────────────────────────────────────
@@ -269,14 +296,14 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title});
   @override
   Widget build(BuildContext context) => Text(
-    title,
-    style: const TextStyle(
-      color: Colors.white,
-      fontSize: 15,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 0.3,
-    ),
-  );
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.3,
+        ),
+      );
 }
 
 class _ModeChip extends StatelessWidget {
@@ -296,7 +323,7 @@ class _ModeChip extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isOn ? const Color(0xFF00FFC2).withValues(alpha: 0.15) : const Color(0xFF1C1C24),
+            color: isOn ? const Color(0xFF00FFC2).withOpacity(0.15) : const Color(0xFF1C1C24),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isOn ? const Color(0xFF00FFC2) : Colors.white12,

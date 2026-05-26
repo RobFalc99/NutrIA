@@ -15,7 +15,7 @@ extension GetDailyLogEntityCollection on Isar {
 
 const DailyLogEntitySchema = CollectionSchema(
   name: r'DailyLogEntity',
-  id: 3488500613987252401,
+  id: 3488500613987252224,
   properties: {
     r'date': PropertySchema(
       id: 0,
@@ -46,7 +46,7 @@ const DailyLogEntitySchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'date': IndexSchema(
-      id: -7552997827385218417,
+      id: -7552997827385218048,
       name: r'date',
       unique: true,
       replace: false,
@@ -843,7 +843,7 @@ extension DailyLogEntityQueryProperty
 
 const MealEntitySchema = Schema(
   name: r'MealEntity',
-  id: -5087059261752265267,
+  id: -5087059261752265728,
   properties: {
     r'id': PropertySchema(
       id: 0,
@@ -1374,7 +1374,7 @@ extension MealEntityQueryObject
 
 const MealItemEntitySchema = Schema(
   name: r'MealItemEntity',
-  id: -2139051275260498932,
+  id: -2139051275260498944,
   properties: {
     r'amountGrams': PropertySchema(
       id: 0,

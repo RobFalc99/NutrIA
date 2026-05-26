@@ -15,7 +15,7 @@ extension GetUserProfileEntityCollection on Isar {
 
 const UserProfileEntitySchema = CollectionSchema(
   name: r'UserProfileEntity',
-  id: -588086384777568406,
+  id: -588086384777568384,
   properties: {
     r'age': PropertySchema(
       id: 0,
