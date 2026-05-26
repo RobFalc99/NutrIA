@@ -84,17 +84,55 @@ Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown, senza blocchi di cod
     return [];
   }
 
+  double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      // Rimuove spazi e caratteri non numerici tranne punti e virgole
+      final cleaned = value.replaceAll(RegExp(r'[^0-9.,]'), '').replaceAll(',', '.');
+      return double.tryParse(cleaned) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  dynamic _findValue(Map<String, dynamic> map, List<String> possibleKeys) {
+    for (final key in possibleKeys) {
+      if (map.containsKey(key)) return map[key];
+      // Cerca in modo insensibile al maiuscolo/minuscolo e ignorando gli underscore
+      final target = key.toLowerCase().replaceAll('_', '');
+      for (final actualKey in map.keys) {
+        final actual = actualKey.toLowerCase().replaceAll('_', '');
+        if (actual == target) {
+          return map[actualKey];
+        }
+      }
+    }
+    return null;
+  }
+
   List<MealItem> _parseJsonToMealItems(String jsonString) {
     try {
       String cleanJson = jsonString.trim();
       
-      // Estrae in modo ultra-robusto il blocco JSON racchiuso tra parentesi quadre
-      final start = cleanJson.indexOf('[');
-      final end = cleanJson.lastIndexOf(']');
+      // Estrae in modo ultra-robusto il blocco JSON racchiuso tra parentesi quadre o graffe
+      final startBracket = cleanJson.indexOf('[');
+      final startBrace = cleanJson.indexOf('{');
+      
+      int start = -1;
+      int end = -1;
+      
+      if (startBracket != -1 && (startBrace == -1 || startBracket < startBrace)) {
+        start = startBracket;
+        end = cleanJson.lastIndexOf(']');
+      } else if (startBrace != -1) {
+        start = startBrace;
+        end = cleanJson.lastIndexOf('}');
+      }
+      
       if (start != -1 && end != -1 && end > start) {
         cleanJson = cleanJson.substring(start, end + 1);
       } else {
-        // Fallback classico se non trova [ ]
+        // Fallback classico se non trova [ ] o { }
         if (cleanJson.startsWith('```json')) {
           cleanJson = cleanJson.substring(7);
         }
@@ -106,22 +144,68 @@ Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown, senza blocchi di cod
         }
       }
       
-      final List<dynamic> list = json.decode(cleanJson.trim());
+      final decoded = json.decode(cleanJson.trim());
+      List<dynamic> list;
       
-      return list.map((item) {
+      if (decoded is List) {
+        list = decoded;
+      } else if (decoded is Map<String, dynamic>) {
+        // Cerca una lista all'interno delle chiavi del Map
+        final listKey = decoded.keys.firstWhere(
+          (k) => decoded[k] is List,
+          orElse: () => '',
+        );
+        if (listKey.isNotEmpty) {
+          list = decoded[listKey] as List<dynamic>;
+        } else {
+          // Se non c'è una lista, forse il map stesso rappresenta un singolo alimento
+          list = [decoded];
+        }
+      } else {
+        print('Gemini ha restituito un tipo JSON non supportato: ${decoded.runtimeType}');
+        return [];
+      }
+      
+      return list.map((itemRaw) {
+        if (itemRaw is! Map) {
+          return MealItem(
+            food: Food(
+              id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+              name: itemRaw.toString(),
+              isCustom: true,
+              caloriesPer100g: 0.0,
+              proteinsPer100g: 0.0,
+              carbsPer100g: 0.0,
+              fatsPer100g: 0.0,
+            ),
+            amountGrams: 100.0,
+          );
+        }
+        
+        final item = Map<String, dynamic>.from(itemRaw);
+        
+        final String name = _findValue(item, ['name', 'nome', 'alimento', 'prodotto', 'ingredient', 'ingrediente']) ?? 'Sconosciuto';
+        final double amount = _parseDouble(_findValue(item, ['amountGrams', 'amount_grams', 'grams', 'grammi', 'weight', 'peso', 'amount', 'quantity', 'quantità']) ?? 100.0);
+        final double calories = _parseDouble(_findValue(item, ['caloriesPer100g', 'calories_per_100g', 'calories', 'calorie', 'kcal', 'energy', 'energia']) ?? 0.0);
+        final double proteins = _parseDouble(_findValue(item, ['proteinsPer100g', 'proteins_per_100g', 'proteins', 'proteine', 'protein']) ?? 0.0);
+        final double carbs = _parseDouble(_findValue(item, ['carbsPer100g', 'carbs_per_100g', 'carbs', 'carboidrati', 'carb', 'carbohydrates']) ?? 0.0);
+        final double fats = _parseDouble(_findValue(item, ['fatsPer100g', 'fats_per_100g', 'fats', 'grassi', 'fat', 'lipidi']) ?? 0.0);
+        final double fibers = _parseDouble(_findValue(item, ['fibersPer100g', 'fibers_per_100g', 'fibers', 'fibre', 'fiber']) ?? 0.0);
+        
         final food = Food(
-          id: 'ai_${DateTime.now().millisecondsSinceEpoch}_${item['name'].hashCode}',
-          name: item['name'] ?? 'Sconosciuto',
-          caloriesPer100g: (item['caloriesPer100g'] ?? 0).toDouble(),
-          proteinsPer100g: (item['proteinsPer100g'] ?? 0).toDouble(),
-          carbsPer100g: (item['carbsPer100g'] ?? 0).toDouble(),
-          fatsPer100g: (item['fatsPer100g'] ?? 0).toDouble(),
-          fibersPer100g: (item['fibersPer100g'] ?? 0).toDouble(),
+          id: 'ai_${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
+          name: name,
+          caloriesPer100g: calories,
+          proteinsPer100g: proteins,
+          carbsPer100g: carbs,
+          fatsPer100g: fats,
+          fibersPer100g: fibers,
           isCustom: true,
         );
+        
         return MealItem(
           food: food,
-          amountGrams: (item['amountGrams'] ?? 100).toDouble(),
+          amountGrams: amount,
         );
       }).toList();
     } catch (e) {
