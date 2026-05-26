@@ -127,7 +127,7 @@ class _ProfileFormState extends State<ProfileForm> {
     final appState = context.read<AppState>();
     final profile = UserProfileEntity()
       ..id = appState.currentUser?.id ?? 1
-      ..name = _nameController.text.trim()
+      ..name = _nameController.text.trim().isEmpty ? 'Atleta KCALcolatore' : _nameController.text.trim()
       ..goalCalories = double.tryParse(_caloriesController.text) ?? 2000
       ..goalProteins = double.tryParse(_proteinsController.text) ?? 150
       ..goalCarbs = double.tryParse(_carbsController.text) ?? 200
@@ -365,7 +365,15 @@ class _Field extends StatelessWidget {
       controller: controller,
       keyboardType: numeric ? TextInputType.number : TextInputType.text,
       style: const TextStyle(color: Colors.white),
-      validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo richiesto' : null,
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) {
+          return null; // Non richiesto, usiamo fallbacks sicuri al salvataggio
+        }
+        if (numeric && double.tryParse(v) == null) {
+          return 'Inserisci un numero valido';
+        }
+        return null;
+      },
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white54),
