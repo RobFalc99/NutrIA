@@ -102,14 +102,6 @@ class DashboardScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white70),
-            onPressed: () {
-              Navigator.pushNamed(context, '/profile');
-            },
-          )
-        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),

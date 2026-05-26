@@ -81,13 +81,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Profilo salvato con successo!'),
-          backgroundColor: _accentCyan.withOpacity(0.85),
+          content: const Text('Profilo salvato!'),
+          backgroundColor: _accentCyan.withValues(alpha: 0.9),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context);
+      // Non c'e' piu' Navigator.pop: ProfileScreen e' una tab permanente
     }
   }
 
@@ -128,6 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: _bgDark,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text(
           'Profilo & Target',
           style: TextStyle(fontWeight: FontWeight.bold),

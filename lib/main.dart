@@ -6,9 +6,8 @@ import 'package:provider/provider.dart';
 import 'data/local/entities/daily_log_entity.dart';
 import 'data/local/entities/user_profile_entity.dart';
 import 'providers/app_state.dart';
-import 'ui/screens/dashboard_screen.dart';
+import 'ui/screens/main_screen.dart';
 import 'ui/screens/add_meal_screen.dart';
-import 'ui/screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,21 +36,23 @@ class KCALcolatoreApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'KCALcolatore',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F0F13), // Deep dark mode
-        primaryColor: const Color(0xFF00FFC2), // Neon accent
+        scaffoldBackgroundColor: const Color(0xFF0F0F13),
+        primaryColor: const Color(0xFF00FFC2),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF00FFC2),
-          secondary: Color(0xFFFF007F), // Neon pink
+          secondary: Color(0xFFFF007F),
         ),
         useMaterial3: true,
       ),
+      // MainScreen è la root: contiene Dashboard + Profilo via BottomNavigationBar
+      // Non serve più la route '/profile' perché la navigazione è interna all'IndexedStack
       initialRoute: '/',
       routes: {
-        '/': (context) => const DashboardScreen(),
+        '/': (context) => const MainScreen(),
         '/addMeal': (context) => const AddMealScreen(),
-        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
