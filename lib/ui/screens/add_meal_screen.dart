@@ -17,7 +17,7 @@ class AddMealScreen extends StatefulWidget {
 class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _openFoodFactsService = OpenFoodFactsService();
-  
+
   // Parametri Generali
   late String _selectedMealName;
   bool _initializedMealName = false;
@@ -40,8 +40,8 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
   bool _isAiLoading = false;
   String? _aiError;
   bool _isImageMode = false;
-  bool _isSingleFoodMode = false; // Se true, stima come singolo ingrediente per 100g
-  
+  bool _isSingleFoodMode = false;
+
   // Fotocamera Reale
   XFile? _capturedImage;
 
@@ -79,7 +79,6 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     _searchController.dispose();
     _barcodeController.dispose();
     _aiTextController.dispose();
-    
     _customNameController.dispose();
     _customBrandController.dispose();
     _customCalController.dispose();
@@ -145,13 +144,51 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     }
   }
 
+  // Apri fotocamera per scansione barcode reale
+  Future<void> _openCameraForBarcode() async {
+    final status = await Permission.camera.request();
+    if (!status.isGranted) {
+      if (status.isPermanentlyDenied) openAppSettings();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permesso fotocamera necessario per la scansione.')),
+      );
+      return;
+    }
+
+    final picker = ImagePicker();
+    try {
+      final image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1280,
+        imageQuality: 90,
+      );
+      if (image != null) {
+        // Per ora mostra input manuale pre-compilato con placeholder
+        // In una vera app useremmo un plugin barcode scanner
+        setState(() {
+          _barcodeError = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Immagine catturata. Inserisci il codice a barre manualmente o usa i chip di test rapido.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore apertura fotocamera: $e')),
+      );
+    }
+  }
+
   Future<void> _analyzeWithGeminiText() async {
     final text = _aiTextController.text.trim();
     if (text.isEmpty) return;
 
     final appState = context.read<AppState>();
     final service = appState.geminiService;
-    
+
     if (service == null) {
       setState(() {
         _aiError = 'API Key Gemini non configurata nel profilo.';
@@ -195,11 +232,9 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     }
   }
 
-  // Cattura l'immagine reale chiedendo l'autorizzazione fotocamera
   Future<void> _captureRealImage() async {
-    // Richiesta permessi fotocamera nativi
     final status = await Permission.camera.request();
-    
+
     if (status.isGranted) {
       final picker = ImagePicker();
       try {
@@ -222,7 +257,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       }
     } else if (status.isPermanentlyDenied) {
       setState(() {
-        _aiError = 'Permesso fotocamera negato permanentemente. Abilitalo nelle impostazioni per scattare foto dei pasti.';
+        _aiError = 'Permesso fotocamera negato permanentemente. Abilitalo nelle impostazioni.';
       });
       openAppSettings();
     } else {
@@ -232,17 +267,13 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     }
   }
 
-  // Carica da Galleria
   Future<void> _pickImageFromGallery() async {
-    // Richiesta permessi galleria nativi (storage per Android <= 12, photos per Android >= 13)
     PermissionStatus status;
     if (await Permission.photos.isGranted || await Permission.storage.isGranted) {
       status = PermissionStatus.granted;
     } else {
-      // Prova a richiedere photos
       status = await Permission.photos.request();
       if (!status.isGranted) {
-        // Altrimenti prova storage
         status = await Permission.storage.request();
       }
     }
@@ -269,7 +300,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       }
     } else if (status.isPermanentlyDenied) {
       setState(() {
-        _aiError = 'Permesso galleria negato permanentemente. Abilitalo nelle impostazioni per selezionare foto dei pasti.';
+        _aiError = 'Permesso galleria negato permanentemente. Abilitalo nelle impostazioni.';
       });
       openAppSettings();
     } else {
@@ -282,7 +313,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
   Future<void> _analyzeWithGeminiVision() async {
     final appState = context.read<AppState>();
     final service = appState.geminiService;
-    
+
     if (service == null) {
       setState(() {
         _aiError = 'API Key Gemini non configurata nel profilo.';
@@ -305,13 +336,12 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
 
     try {
       final bytes = await _capturedImage!.readAsBytes();
-      
-      final String contextNote = _aiTextController.text.isNotEmpty 
-          ? _aiTextController.text 
+      final String contextNote = _aiTextController.text.isNotEmpty
+          ? _aiTextController.text
           : 'Analizza questo piatto stimando grammi ed alimenti.';
 
       final items = await service.analyzeImageToMeals(bytes.toList(), additionalText: contextNote);
-      
+
       setState(() {
         _aiEstimatedItems = items;
         if (items.isEmpty) {
@@ -332,7 +362,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
   void _saveCustomFoodAndAdd() {
     if (_customFormKey.currentState!.validate()) {
       final appState = context.read<AppState>();
-      
+
       final newFood = Food(
         id: 'local_custom_${DateTime.now().millisecondsSinceEpoch}',
         name: _customNameController.text.trim(),
@@ -346,29 +376,19 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         isOnline: _saveOnline,
       );
 
-      final double grams = double.tryParse(_amountController.text) ?? 100.0;
-
       if (_saveOnline) {
         appState.saveCustomFood(newFood);
       }
-      
-      appState.addMealItem(_selectedMealName, newFood, grams);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${newFood.name} aggiunto a $_selectedMealName!'),
-          backgroundColor: const Color(0xFF00FFC2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      Navigator.pop(context);
+      // Mostra dialogo quantità prima di aggiungere
+      _showAddQuantityDialog(newFood);
     }
   }
 
   void _addFoodDirectly(Food food) {
     final double grams = double.tryParse(_amountController.text) ?? 100.0;
     context.read<AppState>().addMealItem(_selectedMealName, food, grams);
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${food.name} (${grams.toInt()}g) aggiunto a $_selectedMealName!'),
@@ -395,13 +415,174 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     Navigator.pop(context);
   }
 
-  // --- WIDGETS DI SUPPORTO ---
+  // --- BOTTOM SHEET INFO ALIMENTO ---
+  void _showFoodInfoSheet(Food food) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _FoodInfoSheet(food: food),
+    );
+  }
+
+  // --- POPUP DI SELEZIONE GRAMMATURA ---
+  void _showAddQuantityDialog(Food food) {
+    double amount = 100.0;
+    final textController = TextEditingController(text: '100');
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            double calories = (food.caloriesPer100g * amount) / 100;
+            double proteins = (food.proteinsPer100g * amount) / 100;
+            double carbs = (food.carbsPer100g * amount) / 100;
+            double fats = (food.fatsPer100g * amount) / 100;
+            double fibers = (food.fibersPer100g * amount) / 100;
+
+            const accentCyan = Color(0xFF00FFC2);
+            const accentPink = Color(0xFFFF007F);
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16161D),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    food.name,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  if (food.brand != null && food.brand!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(food.brand!, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                  ],
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: textController,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        labelText: 'Quantità (g)',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        suffixText: 'g',
+                        suffixStyle: const TextStyle(color: Colors.white38),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.04),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      ),
+                      onChanged: (val) {
+                        setDialogState(() {
+                          amount = double.tryParse(val) ?? 0.0;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Quick gram chips
+                    Wrap(
+                      spacing: 8,
+                      children: [30, 50, 100, 150, 200, 250].map((g) {
+                        return ActionChip(
+                          label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                          backgroundColor: Colors.white.withOpacity(0.06),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            textController.text = g.toString();
+                            setDialogState(() { amount = g.toDouble(); });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Valori calcolati:', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    const SizedBox(height: 10),
+                    _buildDialogMacroRow('Calorie', '${calories.toStringAsFixed(1)} kcal', accentCyan, Colors.white.withOpacity(0.05)),
+                    _buildDialogMacroRow('Proteine', '${proteins.toStringAsFixed(1)} g', accentPink, Colors.white.withOpacity(0.03)),
+                    _buildDialogMacroRow('Carboidrati', '${carbs.toStringAsFixed(1)} g', const Color(0xFFFFD700), Colors.white.withOpacity(0.05)),
+                    _buildDialogMacroRow('Grassi', '${fats.toStringAsFixed(1)} g', const Color(0xFF00E676), Colors.white.withOpacity(0.03)),
+                    _buildDialogMacroRow('Fibre', '${fibers.toStringAsFixed(1)} g', Colors.cyan, Colors.white.withOpacity(0.05)),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.all(16),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    final appState = this.context.read<AppState>();
+                    appState.saveCustomFood(food);
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Alimento salvato nella scheda Salvati!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Salva', style: TextStyle(color: accentCyan, fontWeight: FontWeight.bold)),
+                ),
+                ElevatedButton(
+                  onPressed: amount <= 0 ? null : () {
+                    final appState = this.context.read<AppState>();
+                    appState.addMealItem(_selectedMealName, food, amount);
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(
+                        content: Text('Aggiunti ${amount.toInt()}g di ${food.name} a $_selectedMealName!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    Navigator.pop(context);
+                    Navigator.pop(this.context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentPink,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Aggiungi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogMacroRow(String label, String value, Color color, Color bgColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            ],
+          ),
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  // --- BUILD ---
 
   @override
   Widget build(BuildContext context) {
     const accentCyan = Color(0xFF00FFC2);
     const accentPink = Color(0xFFFF007F);
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F13),
       appBar: AppBar(
@@ -429,19 +610,23 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         children: [
           // Selettore Pasto
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.02),
               border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
             ),
             child: Row(
               children: [
+                const Icon(Icons.restaurant_menu, color: Colors.white38, size: 18),
+                const SizedBox(width: 8),
+                const Text('Pasto:', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                       color: Colors.white.withOpacity(0.04),
-                       borderRadius: BorderRadius.circular(12),
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -452,11 +637,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                             .map((name) => DropdownMenuItem(value: name, child: Text(name)))
                             .toList(),
                         onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              _selectedMealName = val;
-                            });
-                          }
+                          if (val != null) setState(() => _selectedMealName = val);
                         },
                       ),
                     ),
@@ -466,7 +647,6 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
             ),
           ),
 
-          // Contenuto delle Schede
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -485,14 +665,13 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     );
   }
 
-  // TAB 1: CERCA MANUALE
+  // TAB 1: CERCA
   Widget _buildSearchTab(Color cyan, Color pink) {
     final appState = context.watch<AppState>();
     final query = _searchController.text.trim().toLowerCase();
-    
-    // Filtro locale sui cibi personali/salvati
-    final List<Food> localFiltered = query.isEmpty 
-        ? appState.customFoods 
+
+    final List<Food> localFiltered = query.isEmpty
+        ? appState.customFoods
         : appState.customFoods.where((food) => food.name.toLowerCase().contains(query)).toList();
 
     return Padding(
@@ -500,16 +679,13 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Barra di ricerca
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _searchController,
                   style: const TextStyle(color: Colors.white),
-                  onChanged: (val) {
-                    setState(() {}); // Ricarica per aggiornare la ricerca locale istantanea
-                  },
+                  onChanged: (val) => setState(() {}),
                   onSubmitted: (_) => _performSearch(),
                   decoration: InputDecoration(
                     hintText: 'Cerca alimento...',
@@ -527,69 +703,44 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                 style: ElevatedButton.styleFrom(
                   backgroundColor: cyan,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
                 ),
-                child: const Text('Cerca Web', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-              )
+                child: const Text('Web', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-
-          // Risultati ricerca ed elenco locale online
           Expanded(
             child: _isSearching
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF00FFC2)))
                 : ListView(
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      // Sezione cibi personalizzati online creati dall'utente
                       if (localFiltered.isNotEmpty) ...[
-                        Row(
-                          children: [
-                            Icon(Icons.cloud_done, color: cyan, size: 16),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Cibi Locali e Personalizzati',
-                              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
+                        _sectionHeader(Icons.cloud_done, 'Cibi Personali', cyan),
                         const SizedBox(height: 8),
                         ...localFiltered.map((food) => _buildFoodListTile(food, cyan)),
                         const SizedBox(height: 20),
                       ],
-                      
-                      // Risultati OpenFoodFacts (Internet)
                       if (_searchResults.isNotEmpty) ...[
-                        Row(
-                          children: [
-                            Icon(Icons.language, color: pink, size: 16),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Risultati da Internet (OpenFoodFacts)',
-                              style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
+                        _sectionHeader(Icons.language, 'Risultati OpenFoodFacts', pink),
                         const SizedBox(height: 8),
                         ..._searchResults.map((food) => _buildFoodListTile(food, pink)),
                       ] else if (localFiltered.isEmpty) ...[
+                        const SizedBox(height: 80),
                         const Center(
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 100.0),
-                            child: Column(
-                              children: [
-                                Icon(Icons.search_off, size: 48, color: Colors.white24),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Cerca alimenti per marca o nome\n o effettua una ricerca Web su OpenFoodFacts.',
-                                  style: TextStyle(color: Colors.white30, fontSize: 13),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.search_off, size: 48, color: Colors.white24),
+                              SizedBox(height: 10),
+                              Text(
+                                'Cerca per nome o marca\noppure premi "Web" per cercare su OpenFoodFacts.',
+                                style: TextStyle(color: Colors.white30, fontSize: 13),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                        )
+                        ),
                       ],
                     ],
                   ),
@@ -599,78 +750,122 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     );
   }
 
+  Widget _sectionHeader(IconData icon, String title, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 15),
+        const SizedBox(width: 6),
+        Text(title, style: TextStyle(color: color.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
   Widget _buildFoodListTile(Food food, Color accentColor) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.02),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
       child: ListTile(
-        title: Text(food.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        title: Text(food.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
         subtitle: Text(
-          '${food.brand ?? "Generico"} • ${food.caloriesPer100g.toInt()} kcal/100g • P: ${food.proteinsPer100g.toStringAsFixed(1)}g',
+          '${food.brand ?? "Generico"} · ${food.caloriesPer100g.toInt()} kcal/100g',
           style: const TextStyle(color: Colors.white54, fontSize: 11),
         ),
-        trailing: const Icon(Icons.add_circle, color: Color(0xFF00FFC2)),
-        onTap: () => _showAddQuantityDialog(food),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tasto Info
+            IconButton(
+              icon: Icon(Icons.info_outline, color: accentColor.withOpacity(0.7), size: 20),
+              tooltip: 'Info macros',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => _showFoodInfoSheet(food),
+            ),
+            const SizedBox(width: 8),
+            // Tasto Aggiungi
+            GestureDetector(
+              onTap: () => _showAddQuantityDialog(food),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.add, color: accentColor, size: 18),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // TAB 2: SCANSIONE CODICE A BARRE (EMULATORE)
+  // TAB 2: BARCODE
   Widget _buildBarcodeTab(Color cyan, Color pink) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Scanner Visual Emulator
-          Container(
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(_isScanning ? Icons.sync : Icons.qr_code_scanner, size: 48, color: cyan),
-                    const SizedBox(height: 10),
-                    Text(
-                      _isScanning ? 'Scansione in corso...' : 'Fotocamera Pronta per Scansione',
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
-                ),
-                // Glowing scan line
-                if (_isScanning)
-                  Positioned(
-                    top: 80,
-                    left: 20,
-                    right: 20,
-                    child: Container(
-                      height: 3,
-                      decoration: BoxDecoration(
+          // Pulsante fotocamera principale
+          GestureDetector(
+            onTap: _openCameraForBarcode,
+            child: Container(
+              height: 160,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: cyan.withOpacity(0.25)),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _isScanning ? Icons.sync : Icons.camera_alt,
+                        size: 48,
                         color: cyan,
-                        boxShadow: [
-                          BoxShadow(color: cyan.withOpacity(0.8), blurRadius: 10, spreadRadius: 2),
-                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _isScanning ? 'Ricerca in corso...' : 'Tocca per aprire la fotocamera',
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Inquadra il codice a barre del prodotto',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  if (_isScanning)
+                    Positioned(
+                      top: 80,
+                      left: 20,
+                      right: 20,
+                      child: Container(
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: cyan,
+                          boxShadow: [BoxShadow(color: cyan.withOpacity(0.8), blurRadius: 10, spreadRadius: 2)],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
 
-          // Scansione Rapida di Codici di Prova
-          const Text('Codici di test rapidi per sviluppo:', style: TextStyle(color: Colors.white60, fontSize: 12)),
+          // Codici di test rapidi
+          Text('Codici di test rapidi:', style: TextStyle(color: Colors.white38, fontSize: 11)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -683,36 +878,41 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 20),
 
-          // Input Manuale Codice
-          TextField(
-            controller: _barcodeController,
-            style: const TextStyle(color: Colors.white),
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: 'Inserisci codice a barre a mano...',
-              hintStyle: const TextStyle(color: Colors.white30),
-              prefixIcon: const Icon(Icons.qr_code, color: Colors.white54),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.04),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          ElevatedButton.icon(
-            onPressed: () => _scanBarcode(_barcodeController.text),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: pink,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            ),
-            icon: const Icon(Icons.camera_alt, color: Colors.white),
-            label: const Text('Scansiona / Cerca Codice', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          // Input Manuale
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _barcodeController,
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType: TextInputType.number,
+                  onSubmitted: (_) => _scanBarcode(_barcodeController.text),
+                  decoration: InputDecoration(
+                    hintText: 'Inserisci codice a barre...',
+                    hintStyle: const TextStyle(color: Colors.white30),
+                    prefixIcon: const Icon(Icons.qr_code, color: Colors.white54),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.04),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => _scanBarcode(_barcodeController.text),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: pink,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                child: const Icon(Icons.search, color: Colors.white),
+              ),
+            ],
           ),
 
           const SizedBox(height: 24),
 
-          // Risultato Scansione
+          // Risultato
           if (_barcodeResult != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
@@ -727,7 +927,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Prodotto Identificato!', style: TextStyle(color: cyan, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text('Prodotto Trovato!', style: TextStyle(color: cyan, fontWeight: FontWeight.bold, fontSize: 13)),
                       Text('${_barcodeResult!.caloriesPer100g.toInt()} kcal/100g', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -735,13 +935,32 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                   Text(_barcodeResult!.name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   Text(_barcodeResult!.brand ?? 'Marca Sconosciuta', style: const TextStyle(color: Colors.white54, fontSize: 12)),
                   const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => _showAddQuantityDialog(_barcodeResult!),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cyan,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Seleziona Quantità e Aggiungi', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showFoodInfoSheet(_barcodeResult!),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: cyan.withOpacity(0.4)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: Icon(Icons.info_outline, color: cyan, size: 16),
+                          label: Text('Info', style: TextStyle(color: cyan, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () => _showAddQuantityDialog(_barcodeResult!),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: cyan,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Aggiungi', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -754,11 +973,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: pink.withOpacity(0.2)),
               ),
-              child: Text(
-                _barcodeError!,
-                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
+              child: Text(_barcodeError!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             ),
           ],
         ],
@@ -777,7 +992,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     );
   }
 
-  // TAB 3: ANALISI INTELLIGENZA ARTIFICIALE (GEMINI)
+  // TAB 3: IA
   Widget _buildAiTab(Color cyan, Color pink) {
     final appState = context.watch<AppState>();
     final hasKey = appState.currentUser?.geminiApiKey != null;
@@ -790,26 +1005,13 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
           children: [
             const Icon(Icons.psychology_alt, size: 72, color: Colors.white24),
             const SizedBox(height: 16),
-            const Text(
-              'Assistente Nutrizionale AI Disattivato',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
+            const Text('Assistente AI Disattivato', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            const Text(
-              'Per consentire a Google Gemini di analizzare descrizioni testuali e foto dei tuoi piatti stimando i macro in tempo reale, inserisci la tua API Key Gemini nelle impostazioni del tuo profilo.',
-              style: TextStyle(color: Colors.white54, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
+            const Text('Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI.', style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, '/profile');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: pink,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              onPressed: () => Navigator.pushNamed(context, '/profile'),
+              style: ElevatedButton.styleFrom(backgroundColor: pink, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               icon: const Icon(Icons.settings, color: Colors.white),
               label: const Text('Vai alle Impostazioni', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
@@ -832,36 +1034,25 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                   selected: !_isImageMode,
                   selectedColor: cyan.withOpacity(0.15),
                   backgroundColor: Colors.white.withOpacity(0.02),
-                  onSelected: (val) {
-                    setState(() {
-                      _isImageMode = false;
-                      _aiEstimatedItems = [];
-                    });
-                  },
+                  onSelected: (val) => setState(() { _isImageMode = false; _aiEstimatedItems = []; }),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ChoiceChip(
-                  label: const Text('Foto Pasto (Vision)', style: TextStyle(color: Colors.white)),
+                  label: const Text('Foto Pasto', style: TextStyle(color: Colors.white)),
                   selected: _isImageMode,
                   selectedColor: cyan.withOpacity(0.15),
                   backgroundColor: Colors.white.withOpacity(0.02),
-                  onSelected: (val) {
-                    setState(() {
-                      _isImageMode = true;
-                      _aiEstimatedItems = [];
-                    });
-                  },
+                  onSelected: (val) => setState(() { _isImageMode = true; _aiEstimatedItems = []; }),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           if (!_isImageMode) ...[
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Expanded(
                   child: ChoiceChip(
@@ -870,32 +1061,18 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                     selectedColor: cyan.withOpacity(0.2),
                     backgroundColor: Colors.white.withOpacity(0.01),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    onSelected: (val) {
-                      if (val) {
-                        setState(() {
-                          _isSingleFoodMode = false;
-                          _aiEstimatedItems = [];
-                        });
-                      }
-                    },
+                    onSelected: (val) { if (val) setState(() { _isSingleFoodMode = false; _aiEstimatedItems = []; }); },
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ChoiceChip(
-                    label: const Text('Singolo Alimento (100g)', style: TextStyle(fontSize: 12)),
+                    label: const Text('Singolo (100g)', style: TextStyle(fontSize: 12)),
                     selected: _isSingleFoodMode,
                     selectedColor: cyan.withOpacity(0.2),
                     backgroundColor: Colors.white.withOpacity(0.01),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    onSelected: (val) {
-                      if (val) {
-                        setState(() {
-                          _isSingleFoodMode = true;
-                          _aiEstimatedItems = [];
-                        });
-                      }
-                    },
+                    onSelected: (val) { if (val) setState(() { _isSingleFoodMode = true; _aiEstimatedItems = []; }); },
                   ),
                 ),
               ],
@@ -904,14 +1081,10 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
           ],
 
           if (_isImageMode) ...[
-            // Anteprima Immagine Catturata / Scelta o Pulsanti Fotocamera
             if (_capturedImage != null) ...[
               Container(
                 height: 180,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: cyan.withOpacity(0.3)),
-                ),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: cyan.withOpacity(0.3))),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Stack(
@@ -919,21 +1092,15 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                     children: [
                       Image.file(File(_capturedImage!.path), fit: BoxFit.cover),
                       Positioned(
-                        right: 8,
-                        top: 8,
+                        right: 8, top: 8,
                         child: CircleAvatar(
                           backgroundColor: Colors.black54,
                           child: IconButton(
                             icon: const Icon(Icons.delete, color: Colors.redAccent),
-                            onPressed: () {
-                              setState(() {
-                                _capturedImage = null;
-                                _aiEstimatedItems = [];
-                              });
-                            },
+                            onPressed: () => setState(() { _capturedImage = null; _aiEstimatedItems = []; }),
                           ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -949,10 +1116,9 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                 icon: _isAiLoading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F0F13)))
                     : const Icon(Icons.analytics, color: Color(0xFF0F0F13)),
-                label: const Text('Invia ed Analizza con Gemini Vision 🪄', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold)),
+                label: const Text('Analizza con Gemini Vision 🪄', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold)),
               ),
             ] else ...[
-              // Pulsanti per scattare foto reale o scegliere da galleria
               Row(
                 children: [
                   Expanded(
@@ -986,15 +1152,14 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
             const SizedBox(height: 16),
           ],
 
-          // Campo descrizione testo
           TextField(
             controller: _aiTextController,
             maxLines: 3,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: _isImageMode 
-                  ? 'Aggiungi dettagli facoltativi sul pasto fotografato (es. condimenti, olio, bibite)...'
-                  : 'Descrivi liberamente il tuo pasto...\n(es. "Ho mangiato un panino integrale con 80g di prosciutto crudo ed un filo di maionese")',
+              hintText: _isImageMode
+                  ? 'Dettagli facoltativi sul pasto fotografato...'
+                  : 'Descrivi il tuo pasto...\n(es. "Panino integrale con 80g di prosciutto crudo")',
               hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
               filled: true,
               fillColor: Colors.white.withOpacity(0.04),
@@ -1011,7 +1176,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              icon: _isAiLoading 
+              icon: _isAiLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F0F13)))
                   : const Icon(Icons.auto_awesome, color: Color(0xFF0F0F13)),
               label: Text(
@@ -1022,7 +1187,6 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
 
           const SizedBox(height: 24),
 
-          // Risultati dell'Analisi AI
           if (_aiEstimatedItems.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.all(16),
@@ -1038,10 +1202,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                     children: [
                       Icon(Icons.auto_awesome, color: Color(0xFF00FFC2), size: 18),
                       SizedBox(width: 8),
-                      Text(
-                        'Ingredienti Stimati dall\'IA:',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
+                      Text('Ingredienti Stimati:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1054,25 +1215,16 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(item.food.name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          '${item.amountGrams.toInt()}g • ${item.food.caloriesPer100g.toInt()} kcal/100g',
-                          style: const TextStyle(color: Colors.white54, fontSize: 11),
-                        ),
-                        trailing: Text(
-                          '${((item.food.caloriesPer100g * item.amountGrams) / 100).toInt()} kcal',
-                          style: const TextStyle(color: Color(0xFF00FFC2), fontWeight: FontWeight.bold),
-                        ),
+                        subtitle: Text('${item.amountGrams.toInt()}g · ${item.food.caloriesPer100g.toInt()} kcal/100g', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                        trailing: Text('${((item.food.caloriesPer100g * item.amountGrams) / 100).toInt()} kcal', style: const TextStyle(color: Color(0xFF00FFC2), fontWeight: FontWeight.bold)),
                       );
                     },
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _addAiItemsDirectly,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cyan,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Conferma ed Aggiungi al Pasto', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(backgroundColor: cyan, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: const Text('Conferma ed Aggiungi', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -1080,16 +1232,8 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
           ] else if (_aiError != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: pink.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: pink.withOpacity(0.2)),
-              ),
-              child: Text(
-                _aiError!,
-                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
+              decoration: BoxDecoration(color: pink.withOpacity(0.06), borderRadius: BorderRadius.circular(20), border: Border.all(color: pink.withOpacity(0.2))),
+              child: Text(_aiError!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             ),
           ],
         ],
@@ -1097,10 +1241,10 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     );
   }
 
-  // TAB 4: CREA ALIMENTO PERSONALIZZATO
+  // TAB 4: NUOVO ALIMENTO - Layout a griglia compatta
   Widget _buildCustomTab(Color cyan, Color pink) {
     final appState = context.watch<AppState>();
-    
+
     return Form(
       key: _customFormKey,
       child: SingleChildScrollView(
@@ -1108,23 +1252,11 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Header con tasto IA
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Crea Alimento Personalizzato',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Salva localmente/cloud per i prossimi diari.',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
-                ),
+                const Text('Nuovo Alimento', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                 if (appState.currentUser?.geminiApiKey != null)
                   TextButton.icon(
                     onPressed: _scanMacroLabelWithAi,
@@ -1133,50 +1265,51 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                   ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            _buildFormInput('Nome Alimento (es. Pane Di Segale)', _customNameController, TextInputType.name, true),
-            const SizedBox(height: 12),
-            _buildFormInput('Marca (es. Casereccio)', _customBrandController, TextInputType.name, false),
-            const SizedBox(height: 12),
-            _buildFormInput('Calorie per 100g (kcal)', _customCalController, TextInputType.number, true),
-            const SizedBox(height: 12),
-            _buildFormInput('Proteine per 100g (g)', _customProtController, TextInputType.number, true),
-            
-            if (appState.currentUser?.trackingMode != 'light') ...[
-              const SizedBox(height: 12),
-              _buildFormInput('Carboidrati per 100g (g)', _customCarbController, TextInputType.number, true),
-              const SizedBox(height: 12),
-              _buildFormInput('Grassi per 100g (g)', _customFatController, TextInputType.number, true),
-            ],
+            // Nome e Marca su riga
+            _buildFormInput('Nome Alimento *', _customNameController, TextInputType.name, true),
+            const SizedBox(height: 10),
+            _buildFormInput('Marca (opzionale)', _customBrandController, TextInputType.name, false),
+            const SizedBox(height: 16),
 
-            if (appState.currentUser?.trackingMode == 'custom') ...[
-              const SizedBox(height: 12),
-              _buildFormInput('Fibre per 100g (g)', _customFibController, TextInputType.number, true),
-            ],
+            // Macro in griglia 2x2 (più compatta)
+            const Text('Valori per 100g', style: TextStyle(color: Colors.white54, fontSize: 12)),
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(child: _buildMacroInput('Calorie (kcal)*', _customCalController, const Color(0xFF00FFC2))),
+                const SizedBox(width: 10),
+                Expanded(child: _buildMacroInput('Proteine (g)*', _customProtController, const Color(0xFFFF007F))),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: _buildMacroInput('Carboidrati (g)*', _customCarbController, const Color(0xFFFFD700))),
+                const SizedBox(width: 10),
+                Expanded(child: _buildMacroInput('Grassi (g)*', _customFatController, const Color(0xFF00E676))),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _buildMacroInput('Fibre (g)', _customFibController, Colors.cyan, required: false),
 
             const SizedBox(height: 16),
-            
-            // Switch cloud sync
+
+            // Switch cloud
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.02),
-                borderRadius: BorderRadius.circular(15),
-              ),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.02), borderRadius: BorderRadius.circular(15)),
               child: SwitchListTile(
                 value: _saveOnline,
-                onChanged: (val) {
-                  setState(() {
-                    _saveOnline = val;
-                  });
-                },
-                title: const Text('Salva in Cloud Personale', style: TextStyle(color: Colors.white, fontSize: 14)),
-                subtitle: const Text('Sincronizza online con il server KCALcolatore.', style: TextStyle(color: Colors.white30, fontSize: 11)),
+                onChanged: (val) => setState(() => _saveOnline = val),
+                dense: true,
+                title: const Text('Salva nel Cloud', style: TextStyle(color: Colors.white, fontSize: 13)),
                 activeColor: cyan,
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             ElevatedButton(
               onPressed: _saveCustomFoodAndAdd,
@@ -1185,158 +1318,35 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              child: const Text(
-                'Crea ed Aggiungi al Pasto',
-                style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 15),
-              ),
+              child: const Text('Crea ed Aggiungi al Pasto', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 15)),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  // --- POPUP DI SELEZIONE GRAMMATURA E MACROS IN TEMPO REALE ---
-  void _showAddQuantityDialog(Food food) {
-    double amount = 100.0;
-    final textController = TextEditingController(text: '100');
-    
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            double calories = (food.caloriesPer100g * amount) / 100;
-            double proteins = (food.proteinsPer100g * amount) / 100;
-            double carbs = (food.carbsPer100g * amount) / 100;
-            double fats = (food.fatsPer100g * amount) / 100;
-            double fibers = (food.fibersPer100g * amount) / 100;
-
-            const accentCyan = Color(0xFF00FFC2);
-            const accentPink = Color(0xFFFF007F);
-
-            return AlertDialog(
-              backgroundColor: const Color(0xFF16161D),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    food.name,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  if (food.brand != null && food.brand!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      food.brand!,
-                      style: const TextStyle(color: Colors.white54, fontSize: 13),
-                    ),
-                  ],
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Input Box
-                    TextField(
-                      controller: textController,
-                      keyboardType: TextInputType.number,
-                      autofocus: true,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      decoration: InputDecoration(
-                        labelText: 'Quantità (g)',
-                        labelStyle: const TextStyle(color: Colors.white60),
-                        suffixText: 'g',
-                        suffixStyle: const TextStyle(color: Colors.white38),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.04),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                      ),
-                      onChanged: (val) {
-                        setDialogState(() {
-                          amount = double.tryParse(val) ?? 0.0;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    const Text('Valori calcolati per questa grammatura:', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    const SizedBox(height: 12),
-                    
-                    // Macro Badge Preview
-                    _buildDialogMacroRow('Calorie', '${calories.toStringAsFixed(1)} kcal', accentCyan, Colors.white.withOpacity(0.05)),
-                    _buildDialogMacroRow('Proteine', '${proteins.toStringAsFixed(1)} g', accentPink, Colors.white.withOpacity(0.03)),
-                    _buildDialogMacroRow('Carboidrati', '${carbs.toStringAsFixed(1)} g', const Color(0xFFFFD700), Colors.white.withOpacity(0.05)),
-                    _buildDialogMacroRow('Grassi', '${fats.toStringAsFixed(1)} g', const Color(0xFF00E676), Colors.white.withOpacity(0.03)),
-                    _buildDialogMacroRow('Fibre', '${fibers.toStringAsFixed(1)} g', Colors.cyan, Colors.white.withOpacity(0.05)),
-                  ],
-                ),
-              ),
-              actionsPadding: const EdgeInsets.all(16),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    final appState = this.context.read<AppState>();
-                    appState.saveCustomFood(food);
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Alimento salvato nella scheda Salvati!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Salva nei Salvati', style: TextStyle(color: accentCyan, fontWeight: FontWeight.bold)),
-                ),
-                ElevatedButton(
-                  onPressed: amount <= 0 ? null : () {
-                    final appState = this.context.read<AppState>();
-                    appState.addMealItem(_selectedMealName, food, amount);
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(
-                        content: Text('Aggiunti ${amount.toInt()}g di ${food.name} a $_selectedMealName!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    Navigator.pop(context); // Chiudi dialog
-                    Navigator.pop(this.context); // Esci dalla schermata aggiungi pasto
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accentPink,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Aggiungi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
+  Widget _buildMacroInput(String label, TextEditingController controller, Color accentColor, {bool required = true}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      validator: (val) {
+        if (required && (val == null || val.isEmpty)) return 'Obbligatorio';
+        return null;
       },
-    );
-  }
-
-  Widget _buildDialogMacroRow(String label, String value, Color color, Color bgColor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-              const SizedBox(width: 8),
-              Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-            ],
-          ),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-        ],
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: accentColor.withOpacity(0.7), fontSize: 12),
+        filled: true,
+        fillColor: accentColor.withOpacity(0.04),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: accentColor.withOpacity(0.5)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
     );
   }
@@ -1352,18 +1362,10 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     }
 
     final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 80,
-    );
-
+    final image = await picker.pickImage(source: ImageSource.camera, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
     if (image == null) return;
 
-    setState(() {
-      _isSearching = true; // Riusa lo spinner
-    });
+    setState(() => _isSearching = true);
 
     try {
       final bytes = await image.readAsBytes();
@@ -1387,21 +1389,17 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impossibile estrarre i valori dall\'etichetta. Riprova con un\'immagine più nitida.')),
+          const SnackBar(content: Text('Impossibile estrarre i valori. Riprova con immagine più nitida.')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore durante l\'estrazione: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
     } finally {
-      setState(() {
-        _isSearching = false;
-      });
+      setState(() => _isSearching = false);
     }
   }
 
-  // --- TAB 5: CRONOLOGIA ALIMENTI ---
+  // TAB 5: CRONOLOGIA
   Widget _buildHistoryTab(Color cyan, Color pink) {
     final appState = context.watch<AppState>();
 
@@ -1415,7 +1413,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         if (list.isEmpty) {
           return const Center(
             child: Text(
-              'Nessun alimento presente nella cronologia.\nAggiungi i tuoi primi alimenti per vederli qui!',
+              'Nessun alimento nella cronologia.\nAggiungi i tuoi primi alimenti!',
               style: TextStyle(color: Colors.white30, fontSize: 13),
               textAlign: TextAlign.center,
             ),
@@ -1424,32 +1422,13 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: list.length,
-          itemBuilder: (context, index) {
-            final food = list[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.02),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
-              ),
-              child: ListTile(
-                title: Text(food.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: Text(
-                  '${food.brand ?? "Generico"} • ${food.caloriesPer100g.toInt()} kcal/100g • P: ${food.proteinsPer100g.toStringAsFixed(1)}g',
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
-                ),
-                trailing: const Icon(Icons.add_circle, color: Color(0xFF00FFC2)),
-                onTap: () => _showAddQuantityDialog(food),
-              ),
-            );
-          },
+          itemBuilder: (context, index) => _buildFoodListTile(list[index], cyan),
         );
       },
     );
   }
 
-  // --- TAB 6: CIBI SALVATI ---
+  // TAB 6: SALVATI
   Widget _buildSavedTab(Color cyan, Color pink) {
     final appState = context.watch<AppState>();
     final list = appState.customFoods;
@@ -1457,7 +1436,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     if (list.isEmpty) {
       return const Center(
         child: Text(
-          'Nessun alimento salvato.\nPuoi salvare alimenti in questa scheda premendo\n"Salva nei Salvati" quando li selezioni.',
+          'Nessun alimento salvato.\nPremi "Salva" nel dialogo di aggiunta per salvarli qui.',
           style: TextStyle(color: Colors.white30, fontSize: 13),
           textAlign: TextAlign.center,
         ),
@@ -1467,26 +1446,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: list.length,
-      itemBuilder: (context, index) {
-        final food = list[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.02),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
-          ),
-          child: ListTile(
-            title: Text(food.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            subtitle: Text(
-              '${food.brand ?? "Generico"} • ${food.caloriesPer100g.toInt()} kcal/100g • P: ${food.proteinsPer100g.toStringAsFixed(1)}g',
-              style: const TextStyle(color: Colors.white54, fontSize: 11),
-            ),
-            trailing: const Icon(Icons.add_circle, color: Color(0xFF00FFC2)),
-            onTap: () => _showAddQuantityDialog(food),
-          ),
-        );
-      },
+      itemBuilder: (context, index) => _buildFoodListTile(list[index], cyan),
     );
   }
 
@@ -1496,9 +1456,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
       validator: (val) {
-        if (required && (val == null || val.isEmpty)) {
-          return 'Campo obbligatorio';
-        }
+        if (required && (val == null || val.isEmpty)) return 'Campo obbligatorio';
         return null;
       },
       decoration: InputDecoration(
@@ -1507,8 +1465,299 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         filled: true,
         fillColor: Colors.white.withOpacity(0.04),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: const Color(0xFF00FFC2))),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF00FFC2)),
+        ),
       ),
+    );
+  }
+}
+
+// --- SCHEDA INFO ALIMENTO (Bottom Sheet) ---
+class _FoodInfoSheet extends StatefulWidget {
+  final Food food;
+  const _FoodInfoSheet({required this.food});
+
+  @override
+  State<_FoodInfoSheet> createState() => _FoodInfoSheetState();
+}
+
+class _FoodInfoSheetState extends State<_FoodInfoSheet> {
+  double _grams = 100.0;
+  final _gramController = TextEditingController(text: '100');
+
+  @override
+  void dispose() {
+    _gramController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final food = widget.food;
+
+    final double cal = (food.caloriesPer100g * _grams) / 100;
+    final double prot = (food.proteinsPer100g * _grams) / 100;
+    final double carbs = (food.carbsPer100g * _grams) / 100;
+    final double fats = (food.fatsPer100g * _grams) / 100;
+    final double fibers = (food.fibersPer100g * _grams) / 100;
+
+    const cyan = Color(0xFF00FFC2);
+    const pink = Color(0xFFFF007F);
+    const yellow = Color(0xFFFFD700);
+    const green = Color(0xFF00E676);
+
+    // Calcola tot per proporzioni
+    final double totalMacroKcal = (prot * 4) + (carbs * 4) + (fats * 9);
+    final double protPct = totalMacroKcal > 0 ? (prot * 4 / totalMacroKcal) : 0;
+    final double carbPct = totalMacroKcal > 0 ? (carbs * 4 / totalMacroKcal) : 0;
+    final double fatPct = totalMacroKcal > 0 ? (fats * 9 / totalMacroKcal) : 0;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF16161D),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SingleChildScrollView(
+          controller: controller,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Titolo
+                    Text(food.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+                    if (food.brand != null && food.brand!.isNotEmpty)
+                      Text(food.brand!, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                    const SizedBox(height: 20),
+
+                    // Selettore quantità
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.white.withOpacity(0.06)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Simula quantità', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _gramController,
+                                  keyboardType: TextInputType.number,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                                  decoration: InputDecoration(
+                                    suffixText: 'g',
+                                    suffixStyle: TextStyle(color: Colors.white38),
+                                    filled: true,
+                                    fillColor: Colors.white.withOpacity(0.05),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  ),
+                                  onChanged: (val) => setState(() => _grams = double.tryParse(val) ?? 100.0),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          // Quick chips
+                          Wrap(
+                            spacing: 6,
+                            children: [30, 50, 100, 150, 200, 250, 300].map((g) {
+                              final selected = _grams == g.toDouble();
+                              return ChoiceChip(
+                                label: Text('${g}g', style: TextStyle(color: selected ? Colors.black : Colors.white, fontSize: 11)),
+                                selected: selected,
+                                selectedColor: cyan,
+                                backgroundColor: Colors.white.withOpacity(0.06),
+                                padding: EdgeInsets.zero,
+                                onSelected: (_) {
+                                  _gramController.text = g.toString();
+                                  setState(() => _grams = g.toDouble());
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Calorie grande
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [cyan.withOpacity(0.15), cyan.withOpacity(0.03)]),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: cyan.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Calorie', style: TextStyle(color: cyan.withOpacity(0.7), fontSize: 13)),
+                              Text('${cal.toStringAsFixed(1)} kcal', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 26)),
+                            ],
+                          ),
+                          Text('per ${_grams.toInt()}g', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Macro Cards
+                    Row(
+                      children: [
+                        Expanded(child: _buildMacroCard('Proteine', prot, 'g', pink, protPct)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildMacroCard('Carboidrati', carbs, 'g', yellow, carbPct)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildMacroCard('Grassi', fats, 'g', green, fatPct)),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    _buildFiberCard(fibers, Colors.cyan),
+
+                    const SizedBox(height: 16),
+
+                    // Barra distribuzione macros
+                    if (totalMacroKcal > 0) ...[
+                      const Text('Distribuzione macros (% kcal)', style: TextStyle(color: Colors.white38, fontSize: 11)),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          children: [
+                            Flexible(flex: (protPct * 100).toInt().clamp(1, 100), child: Container(height: 12, color: pink)),
+                            Flexible(flex: (carbPct * 100).toInt().clamp(1, 100), child: Container(height: 12, color: yellow)),
+                            Flexible(flex: (fatPct * 100).toInt().clamp(1, 100), child: Container(height: 12, color: green)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('P ${(protPct * 100).toInt()}%', style: TextStyle(color: pink, fontSize: 11, fontWeight: FontWeight.bold)),
+                          Text('C ${(carbPct * 100).toInt()}%', style: TextStyle(color: yellow, fontSize: 11, fontWeight: FontWeight.bold)),
+                          Text('G ${(fatPct * 100).toInt()}%', style: TextStyle(color: green, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // Riferimento per 100g
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.02),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildRef100g('Kcal', food.caloriesPer100g.toStringAsFixed(0), cyan),
+                          _buildRef100g('Prot', food.proteinsPer100g.toStringAsFixed(1), pink),
+                          _buildRef100g('Carb', food.carbsPer100g.toStringAsFixed(1), yellow),
+                          _buildRef100g('Gras', food.fatsPer100g.toStringAsFixed(1), green),
+                          _buildRef100g('Fibre', food.fibersPer100g.toStringAsFixed(1), Colors.cyan),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Center(child: Text('Valori di riferimento per 100g', style: TextStyle(color: Colors.white24, fontSize: 10))),
+
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMacroCard(String label, double value, String unit, Color color, double pct) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(color: color.withOpacity(0.7), fontSize: 11)),
+          const SizedBox(height: 4),
+          Text('${value.toStringAsFixed(1)}$unit', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: pct.clamp(0.0, 1.0),
+            backgroundColor: Colors.white.withOpacity(0.06),
+            valueColor: AlwaysStoppedAnimation(color),
+            minHeight: 3,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFiberCard(double value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.12)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Fibre', style: TextStyle(color: color.withOpacity(0.7), fontSize: 13)),
+          Text('${value.toStringAsFixed(1)} g', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 15)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRef100g(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(label, style: TextStyle(color: Colors.white38, fontSize: 10)),
+      ],
     );
   }
 }

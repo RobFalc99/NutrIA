@@ -18,8 +18,11 @@ class AppState extends ChangeNotifier {
   List<Meal> _customMeals = [];
   bool isLoadingOnline = false;
 
-  DateTime _selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime _selectedDate = _normalizeDate(DateTime.now());
   DateTime get selectedDate => _selectedDate;
+
+  // Normalizza sempre a mezzanotte locale (evita problemi UTC/timezone)
+  static DateTime _normalizeDate(DateTime d) => DateTime(d.year, d.month, d.day);
 
   AppState(this.isar) {
     _init();
@@ -49,7 +52,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> setSelectedDate(DateTime date) async {
-    _selectedDate = DateTime(date.year, date.month, date.day);
+    _selectedDate = _normalizeDate(date);
     await loadDayLog(_selectedDate);
   }
 
@@ -62,11 +65,37 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> loadDayLog(DateTime date) async {
-    currentDayLog = await isar.dailyLogEntitys.where().dateEqualTo(date).findFirst();
+    final normalizedDate = _normalizeDate(date);
     
-    if (currentDayLog == null) {
+    // Usa un range di 24 ore per trovare il log del giorno,
+    // evitando problemi di timezone/UTC con il confronto esatto
+    final dayStart = normalizedDate;
+    final dayEnd = normalizedDate.add(const Duration(hours: 23, minutes: 59, seconds: 59));
+    
+    final existing = await isar.dailyLogEntitys
+        .filter()
+        .dateGreaterThan(dayStart.subtract(const Duration(seconds: 1)))
+        .and()
+        .dateLessThan(dayEnd.add(const Duration(seconds: 1)))
+        .findAll();
+    
+    // Cerca il record che ha la stessa data (giorno)
+    DailyLogEntity? found;
+    for (final e in existing) {
+      if (_isSameDay(e.date, normalizedDate)) {
+        found = e;
+        break;
+      }
+    }
+    
+    if (found != null) {
+      currentDayLog = found;
+    } else {
+      // Crea un nuovo log solo se non esiste
       final newLog = DailyLogEntity()
-        ..date = date
+        ..date = normalizedDate
+        ..waterMl = 0
+        ..waterGlasses = 0
         ..isTracked = currentUser?.use8020Mode ?? true;
         
       await isar.writeTxn(() async {
@@ -75,16 +104,16 @@ class AppState extends ChangeNotifier {
       currentDayLog = newLog;
     }
 
-    // Carica i log dei 7 giorni intorno a quella data per le statistiche settimanali
-    final weekStart = date.subtract(const Duration(days: 6));
+    // Carica i log dei 7 giorni per le statistiche settimanali
+    final weekStart = normalizedDate.subtract(const Duration(days: 6));
     _weeklyLogs = await isar.dailyLogEntitys
         .filter()
         .dateGreaterThan(weekStart.subtract(const Duration(seconds: 1)))
         .and()
-        .dateLessThan(date.add(const Duration(seconds: 1)))
+        .dateLessThan(dayEnd.add(const Duration(seconds: 1)))
         .findAll();
 
-    if (!_weeklyLogs.any((e) => _isSameDay(e.date, date))) {
+    if (!_weeklyLogs.any((e) => _isSameDay(e.date, normalizedDate))) {
       _weeklyLogs.add(currentDayLog!);
     }
 
