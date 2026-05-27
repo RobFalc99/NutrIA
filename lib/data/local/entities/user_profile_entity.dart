@@ -22,4 +22,5 @@ class UserProfileEntity {
   String trackingMode = 'standard'; // 'light', 'standard', 'custom'
   bool use8020Mode = true; // Modalità 80/20 abilitata
   String? geminiApiKey; // La chiave API fornita dall'utente
+  String? geminiModel; // Modello Gemini selezionato dall'utente
 }

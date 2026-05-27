@@ -174,7 +174,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       });
     } catch (e) {
       setState(() {
-        _aiError = 'Errore durante l\'analisi AI. Controlla la tua chiave API ed internet.';
+        _aiError = 'Errore durante l\'analisi AI. Dettagli: $e';
       });
     } finally {
       setState(() {
@@ -222,23 +222,47 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
 
   // Carica da Galleria
   Future<void> _pickImageFromGallery() async {
-    final picker = ImagePicker();
-    try {
-      final image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 80,
-      );
-      if (image != null) {
+    // Richiesta permessi galleria nativi (storage per Android <= 12, photos per Android >= 13)
+    PermissionStatus status;
+    if (await Permission.photos.isGranted || await Permission.storage.isGranted) {
+      status = PermissionStatus.granted;
+    } else {
+      // Prova a richiedere photos
+      status = await Permission.photos.request();
+      if (!status.isGranted) {
+        // Altrimenti prova storage
+        status = await Permission.storage.request();
+      }
+    }
+
+    if (status.isGranted) {
+      final picker = ImagePicker();
+      try {
+        final image = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 80,
+        );
+        if (image != null) {
+          setState(() {
+            _capturedImage = image;
+            _aiError = null;
+          });
+        }
+      } catch (e) {
         setState(() {
-          _capturedImage = image;
-          _aiError = null;
+          _aiError = 'Errore nel caricamento dall\'album: $e';
         });
       }
-    } catch (e) {
+    } else if (status.isPermanentlyDenied) {
       setState(() {
-        _aiError = 'Errore nel caricamento dall\'album: $e';
+        _aiError = 'Permesso galleria negato permanentemente. Abilitalo nelle impostazioni per selezionare foto dei pasti.';
+      });
+      openAppSettings();
+    } else {
+      setState(() {
+        _aiError = 'Autorizzazione galleria negata dall\'utente.';
       });
     }
   }
@@ -284,7 +308,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       });
     } catch (e) {
       setState(() {
-        _aiError = 'Errore durante l\'analisi dell\'immagine con Gemini Vision.';
+        _aiError = 'Errore durante l\'analisi dell\'immagine con Gemini Vision. Dettagli: $e';
       });
     } finally {
       setState(() {
@@ -934,9 +958,9 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
               icon: _isAiLoading 
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F0F13)))
                   : const Icon(Icons.auto_awesome, color: Color(0xFF0F0F13)),
-              label: const Text(
-                'Stima Nutrizionale AI',
-                style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 15),
+              label: Text(
+                _isAiLoading ? 'Analisi in corso...' : 'Stima Nutrizionale AI',
+                style: const TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 15),
               ),
             ),
 

@@ -801,7 +801,7 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Errore di connessione o API non valida. Riprova.';
+        _error = 'Errore di connessione o API non valida. Dettagli: $e';
       });
     } finally {
       setState(() {
@@ -1012,7 +1012,10 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                 icon: _isLoading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F0F13)))
                     : const Icon(Icons.auto_awesome, color: Color(0xFF0F0F13)),
-                label: const Text('Stima Intero Pasto 🪄', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 15)),
+                label: Text(
+                  _isLoading ? 'Elaborazione pasto...' : 'Stima Intero Pasto 🪄',
+                  style: const TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 15),
+                ),
               ),
 
               const SizedBox(height: 24),

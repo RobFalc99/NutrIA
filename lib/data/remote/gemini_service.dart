@@ -5,62 +5,66 @@ import '../../domain/models.dart';
 
 class GeminiService {
   final String apiKey;
+  final String modelName;
 
-  GeminiService({required this.apiKey});
+  GeminiService({required this.apiKey, this.modelName = 'gemma-4-26b-a4b-it'});
 
   /// Analizza una descrizione testuale e restituisce una lista di MealItem.
-  /// Usiamo un prompt strutturato per far restituire al modello solo JSON.
+  /// Usiamo un prompt strutturato tramite systemInstruction per far restituire al modello solo JSON.
   Future<List<MealItem>> analyzeTextToMeals(String text) async {
-    final model = GenerativeModel(
-      model: 'gemini-1.5-flash', // Usiamo flash che è veloce ed economico
-      apiKey: apiKey,
-    );
+    final systemPrompt = '''
+Sei un nutrizionista esperto ed estremamente preciso.
+Il tuo compito è analizzare la descrizione del pasto fornito dall'utente ed estrarre i singoli ingredienti/alimenti, stimando accuratamente la loro grammatura in grammi e calcolando i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di ciascun alimento.
 
-    final prompt = '''
-Sei un nutrizionista esperto. Analizza il seguente testo che descrive un pasto.
-Devi estrarre i singoli ingredienti/alimenti, la loro grammatura stimata, e i macronutrienti (inclusi carboidrati, proteine, grassi e fibre) per 100g.
-Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown, senza blocchi di codice) con questo formato:
+Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
+
+Il formato JSON richiesto deve essere esattamente questo:
 [
   {
-    "name": "Nome Alimento",
-    "amountGrams": 150,
-    "caloriesPer100g": 120,
+    "name": "Nome Alimento in Italiano",
+    "amountGrams": 150.0,
+    "caloriesPer100g": 120.0,
     "proteinsPer100g": 10.5,
     "carbsPer100g": 2.0,
     "fatsPer100g": 5.0,
     "fibersPer100g": 1.5
   }
 ]
-Testo da analizzare: "$text"
 ''';
 
+    final model = GenerativeModel(
+      model: modelName,
+      apiKey: apiKey,
+      systemInstruction: Content.system(systemPrompt),
+    );
+
     try {
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await model.generateContent([Content.text(text)]);
       if (response.text != null) {
         return _parseJsonToMealItems(response.text!);
+      } else {
+        throw Exception('L\'IA ha restituito una risposta vuota.');
       }
     } catch (e) {
       print('Errore Gemini Text Analysis: $e');
+      rethrow;
     }
-    return [];
   }
 
   /// Analizza un'immagine con testo opzionale
   Future<List<MealItem>> analyzeImageToMeals(List<int> imageBytes, {String? additionalText}) async {
-    final model = GenerativeModel(
-      model: 'gemini-1.5-flash',
-      apiKey: apiKey,
-    );
+    final systemPrompt = '''
+Sei un nutrizionista esperto ed estremamente preciso.
+Il tuo compito è analizzare l'immagine del pasto fornito dall'utente (e considerare qualsiasi eventuale testo descrittivo aggiuntivo) ed estrarre i singoli ingredienti/alimenti, stimando accuratamente la loro grammatura in grammi e calcolando i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di ciascun alimento.
 
-    final prompt = '''
-Sei un nutrizionista esperto. Analizza la foto di questo pasto${additionalText != null ? ' e considera queste info: "$additionalText"' : ''}.
-Stima gli ingredienti visibili, il loro peso in grammi e i macronutrienti (inclusi calorie, carboidrati, proteine, grassi e fibre) per 100g dell'alimento.
-Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown, senza blocchi di codice) con questo formato:
+Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
+
+Il formato JSON richiesto deve essere esattamente questo:
 [
   {
-    "name": "Nome Alimento",
-    "amountGrams": 150,
-    "caloriesPer100g": 120,
+    "name": "Nome Alimento in Italiano",
+    "amountGrams": 150.0,
+    "caloriesPer100g": 120.0,
     "proteinsPer100g": 10.5,
     "carbsPer100g": 2.0,
     "fatsPer100g": 5.0,
@@ -69,19 +73,28 @@ Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown, senza blocchi di cod
 ]
 ''';
 
+    final model = GenerativeModel(
+      model: modelName,
+      apiKey: apiKey,
+      systemInstruction: Content.system(systemPrompt),
+    );
+
     try {
       final imagePart = DataPart('image/jpeg', Uint8List.fromList(imageBytes));
+      final userPrompt = additionalText ?? 'Analizza questo pasto dell\'immagine.';
       final response = await model.generateContent([
-        Content.multi([TextPart(prompt), imagePart])
+        Content.multi([TextPart(userPrompt), imagePart])
       ]);
       
       if (response.text != null) {
         return _parseJsonToMealItems(response.text!);
+      } else {
+        throw Exception('L\'IA ha restituito una risposta vuota.');
       }
     } catch (e) {
       print('Errore Gemini Image Analysis: $e');
+      rethrow;
     }
-    return [];
   }
 
   double _parseDouble(dynamic value) {
@@ -111,106 +124,127 @@ Rispondi ESCLUSIVAMENTE con un JSON valido (senza markdown, senza blocchi di cod
   }
 
   List<MealItem> _parseJsonToMealItems(String jsonString) {
+    String cleanJson = jsonString.trim();
+
     try {
-      String cleanJson = jsonString.trim();
-      
-      // Estrae in modo ultra-robusto il blocco JSON racchiuso tra parentesi quadre o graffe
-      final startBracket = cleanJson.indexOf('[');
-      final startBrace = cleanJson.indexOf('{');
-      
-      int start = -1;
-      int end = -1;
-      
-      if (startBracket != -1 && (startBrace == -1 || startBracket < startBrace)) {
-        start = startBracket;
-        end = cleanJson.lastIndexOf(']');
-      } else if (startBrace != -1) {
-        start = startBrace;
-        end = cleanJson.lastIndexOf('}');
+      // 1. Prova l'estrazione classica (primo [ o { fino all'ultimo ] o })
+      final block = _extractJsonBlock(cleanJson);
+      final decoded = json.decode(block);
+      return _convertDecodedToMealItems(decoded);
+    } catch (_) {
+      try {
+        // 2. Se fallisce (es. per blocchi doppi o ripetuti), prova ad estrarre l'ULTIMO blocco valido
+        final lastBlock = _extractLastJsonBlock(cleanJson);
+        final decoded = json.decode(lastBlock);
+        return _convertDecodedToMealItems(decoded);
+      } catch (e) {
+        print('Errore nel parsing del JSON di Gemini: $e');
+        throw Exception('Errore nel parsing dei dati del pasto: $e. Risposta originale: $jsonString');
       }
-      
-      if (start != -1 && end != -1 && end > start) {
-        cleanJson = cleanJson.substring(start, end + 1);
+    }
+  }
+
+  String _extractJsonBlock(String text) {
+    final startBracket = text.indexOf('[');
+    final startBrace = text.indexOf('{');
+    int start = -1;
+    int end = -1;
+
+    if (startBracket != -1 && (startBrace == -1 || startBracket < startBrace)) {
+      start = startBracket;
+      end = text.lastIndexOf(']');
+    } else if (startBrace != -1) {
+      start = startBrace;
+      end = text.lastIndexOf('}');
+    }
+
+    if (start != -1 && end != -1 && end > start) {
+      return text.substring(start, end + 1);
+    }
+    return text;
+  }
+
+  String _extractLastJsonBlock(String text) {
+    final startBracket = text.lastIndexOf('[');
+    final startBrace = text.lastIndexOf('{');
+    int start = -1;
+    int end = -1;
+
+    if (startBracket != -1 && (startBrace == -1 || startBracket > startBrace)) {
+      start = startBracket;
+      end = text.lastIndexOf(']');
+    } else if (startBrace != -1) {
+      start = startBrace;
+      end = text.lastIndexOf('}');
+    }
+
+    if (start != -1 && end != -1 && end > start) {
+      return text.substring(start, end + 1);
+    }
+    return text;
+  }
+
+  List<MealItem> _convertDecodedToMealItems(dynamic decoded) {
+    List<dynamic> list;
+
+    if (decoded is List) {
+      list = decoded;
+    } else if (decoded is Map<String, dynamic>) {
+      final listKey = decoded.keys.firstWhere(
+        (k) => decoded[k] is List,
+        orElse: () => '',
+      );
+      if (listKey.isNotEmpty) {
+        list = decoded[listKey] as List<dynamic>;
       } else {
-        // Fallback classico se non trova [ ] o { }
-        if (cleanJson.startsWith('```json')) {
-          cleanJson = cleanJson.substring(7);
-        }
-        if (cleanJson.startsWith('```')) {
-          cleanJson = cleanJson.substring(3);
-        }
-        if (cleanJson.endsWith('```')) {
-          cleanJson = cleanJson.substring(0, cleanJson.length - 3);
-        }
+        list = [decoded];
       }
-      
-      final decoded = json.decode(cleanJson.trim());
-      List<dynamic> list;
-      
-      if (decoded is List) {
-        list = decoded;
-      } else if (decoded is Map<String, dynamic>) {
-        // Cerca una lista all'interno delle chiavi del Map
-        final listKey = decoded.keys.firstWhere(
-          (k) => decoded[k] is List,
-          orElse: () => '',
-        );
-        if (listKey.isNotEmpty) {
-          list = decoded[listKey] as List<dynamic>;
-        } else {
-          // Se non c'è una lista, forse il map stesso rappresenta un singolo alimento
-          list = [decoded];
-        }
-      } else {
-        print('Gemini ha restituito un tipo JSON non supportato: ${decoded.runtimeType}');
-        return [];
-      }
-      
-      return list.map((itemRaw) {
-        if (itemRaw is! Map) {
-          return MealItem(
-            food: Food(
-              id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
-              name: itemRaw.toString(),
-              isCustom: true,
-              caloriesPer100g: 0.0,
-              proteinsPer100g: 0.0,
-              carbsPer100g: 0.0,
-              fatsPer100g: 0.0,
-            ),
-            amountGrams: 100.0,
-          );
-        }
-        
-        final item = Map<String, dynamic>.from(itemRaw);
-        
-        final String name = _findValue(item, ['name', 'nome', 'alimento', 'prodotto', 'ingredient', 'ingrediente']) ?? 'Sconosciuto';
-        final double amount = _parseDouble(_findValue(item, ['amountGrams', 'amount_grams', 'grams', 'grammi', 'weight', 'peso', 'amount', 'quantity', 'quantità']) ?? 100.0);
-        final double calories = _parseDouble(_findValue(item, ['caloriesPer100g', 'calories_per_100g', 'calories', 'calorie', 'kcal', 'energy', 'energia']) ?? 0.0);
-        final double proteins = _parseDouble(_findValue(item, ['proteinsPer100g', 'proteins_per_100g', 'proteins', 'proteine', 'protein']) ?? 0.0);
-        final double carbs = _parseDouble(_findValue(item, ['carbsPer100g', 'carbs_per_100g', 'carbs', 'carboidrati', 'carb', 'carbohydrates']) ?? 0.0);
-        final double fats = _parseDouble(_findValue(item, ['fatsPer100g', 'fats_per_100g', 'fats', 'grassi', 'fat', 'lipidi']) ?? 0.0);
-        final double fibers = _parseDouble(_findValue(item, ['fibersPer100g', 'fibers_per_100g', 'fibers', 'fibre', 'fiber']) ?? 0.0);
-        
-        final food = Food(
-          id: 'ai_${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
-          name: name,
-          caloriesPer100g: calories,
-          proteinsPer100g: proteins,
-          carbsPer100g: carbs,
-          fatsPer100g: fats,
-          fibersPer100g: fibers,
-          isCustom: true,
-        );
-        
-        return MealItem(
-          food: food,
-          amountGrams: amount,
-        );
-      }).toList();
-    } catch (e) {
-      print('Errore nel parsing del JSON di Gemini: $e');
+    } else {
+      print('Tipo JSON non supportato: ${decoded.runtimeType}');
       return [];
     }
+
+    return list.map((itemRaw) {
+      if (itemRaw is! Map) {
+        return MealItem(
+          food: Food(
+            id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+            name: itemRaw.toString(),
+            isCustom: true,
+            caloriesPer100g: 0.0,
+            proteinsPer100g: 0.0,
+            carbsPer100g: 0.0,
+            fatsPer100g: 0.0,
+          ),
+          amountGrams: 100.0,
+        );
+      }
+
+      final item = Map<String, dynamic>.from(itemRaw);
+
+      final String name = _findValue(item, ['name', 'nome', 'alimento', 'prodotto', 'ingredient', 'ingrediente']) ?? 'Sconosciuto';
+      final double amount = _parseDouble(_findValue(item, ['amountGrams', 'amount_grams', 'grams', 'grammi', 'weight', 'peso', 'amount', 'quantity', 'quantità']) ?? 100.0);
+      final double calories = _parseDouble(_findValue(item, ['caloriesPer100g', 'calories_per_100g', 'calories', 'calorie', 'kcal', 'energy', 'energia']) ?? 0.0);
+      final double proteins = _parseDouble(_findValue(item, ['proteinsPer100g', 'proteins_per_100g', 'proteins', 'proteine', 'protein']) ?? 0.0);
+      final double carbs = _parseDouble(_findValue(item, ['carbsPer100g', 'carbs_per_100g', 'carbs', 'carboidrati', 'carb', 'carbohydrates']) ?? 0.0);
+      final double fats = _parseDouble(_findValue(item, ['fatsPer100g', 'fats_per_100g', 'fats', 'grassi', 'fat', 'lipidi']) ?? 0.0);
+      final double fibers = _parseDouble(_findValue(item, ['fibersPer100g', 'fibers_per_100g', 'fibers', 'fibre', 'fiber']) ?? 0.0);
+
+      final food = Food(
+        id: 'ai_${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
+        name: name,
+        caloriesPer100g: calories,
+        proteinsPer100g: proteins,
+        carbsPer100g: carbs,
+        fatsPer100g: fats,
+        fibersPer100g: fibers,
+        isCustom: true,
+      );
+
+      return MealItem(
+        food: food,
+        amountGrams: amount,
+      );
+    }).toList();
   }
 }

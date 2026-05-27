@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 
@@ -15,6 +16,25 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestInitialPermissions();
+  }
+
+  Future<void> _requestInitialPermissions() async {
+    // Richiedi permessi fotocamera e galleria (photos/storage) all'avvio
+    try {
+      await [
+        Permission.camera,
+        Permission.photos,
+        Permission.storage,
+      ].request();
+    } catch (e) {
+      debugPrint("Errore richiesta permessi iniziali: $e");
+    }
+  }
 
   static const _accentCyan = Color(0xFF00FFC2);
   static const _accentPink = Color(0xFFFF007F);

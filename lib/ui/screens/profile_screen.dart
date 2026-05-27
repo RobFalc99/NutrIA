@@ -45,6 +45,7 @@ class _ProfileFormState extends State<ProfileForm> {
 
   late String _trackingMode;
   late bool _use8020Mode;
+  late String _selectedModel;
   bool _obscureApiKey = true;
 
   @override
@@ -64,6 +65,7 @@ class _ProfileFormState extends State<ProfileForm> {
 
     _trackingMode = widget.user.trackingMode;
     _use8020Mode = widget.user.use8020Mode;
+    _selectedModel = widget.user.geminiModel ?? 'gemma-4-26b-a4b-it';
   }
 
   @override
@@ -96,6 +98,12 @@ class _ProfileFormState extends State<ProfileForm> {
       final apiKeyStr = widget.user.geminiApiKey ?? '';
       if (_apiKeyController.text != apiKeyStr) {
         _apiKeyController.text = apiKeyStr;
+      }
+      final modelStr = widget.user.geminiModel ?? 'gemma-4-26b-a4b-it';
+      if (_selectedModel != modelStr) {
+        setState(() {
+          _selectedModel = modelStr;
+        });
       }
       if (_trackingMode != widget.user.trackingMode) {
         setState(() {
@@ -137,7 +145,8 @@ class _ProfileFormState extends State<ProfileForm> {
       ..use8020Mode = _use8020Mode
       ..geminiApiKey = _apiKeyController.text.trim().isEmpty
           ? null
-          : _apiKeyController.text.trim();
+          : _apiKeyController.text.trim()
+      ..geminiModel = _selectedModel;
     appState.updateProfile(profile);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -260,6 +269,69 @@ class _ProfileFormState extends State<ProfileForm> {
             const Text(
               'Salvata solo sul dispositivo. Usata per le funzioni AI.',
               style: TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Modello IA ───────────────────────────────────────────────────
+            const _SectionTitle(title: 'Modello IA Selezionato'),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: _selectedModel,
+              style: const TextStyle(color: Colors.white),
+              dropdownColor: const Color(0xFF1C1C24),
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: 'Seleziona Modello IA',
+                labelStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.settings_suggest, color: Color(0xFF00FFC2)),
+                filled: true,
+                fillColor: const Color(0xFF1C1C24),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF00FFC2)),
+                ),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'gemma-4-26b-a4b-it',
+                  child: Text('Gemma 4 26B (Mixture-of-Experts) - Consigliato'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemma-4-31b-it',
+                  child: Text('Gemma 4 31B (Dense)'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemini-3.5-flash',
+                  child: Text('Gemini 3.5 Flash'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemini-3-flash',
+                  child: Text('Gemini 3 Flash'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemini-3.1-flash-lite',
+                  child: Text('Gemini 3.1 Flash Lite'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemini-2.5-flash',
+                  child: Text('Gemini 2.5 Flash'),
+                ),
+                DropdownMenuItem(
+                  value: 'gemini-2.5-flash-lite',
+                  child: Text('Gemini 2.5 Flash Lite'),
+                ),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedModel = val;
+                  });
+                }
+              },
             ),
             const SizedBox(height: 32),
 

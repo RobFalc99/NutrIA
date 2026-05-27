@@ -129,7 +129,11 @@ class AppState extends ChangeNotifier {
   GeminiService? get geminiService {
     final key = currentUser?.geminiApiKey;
     if (key == null || key.trim().isEmpty) return null;
-    return GeminiService(apiKey: key);
+    final model = currentUser?.geminiModel ?? 'gemma-4-26b-a4b-it';
+    return GeminiService(
+      apiKey: key,
+      modelName: model.trim().isEmpty ? 'gemma-4-26b-a4b-it' : model,
+    );
   }
 
   // Aggiungi un bicchiere d'acqua

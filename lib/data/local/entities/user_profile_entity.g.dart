@@ -32,48 +32,53 @@ const UserProfileEntitySchema = CollectionSchema(
       name: r'geminiApiKey',
       type: IsarType.string,
     ),
-    r'goalCalories': PropertySchema(
+    r'geminiModel': PropertySchema(
       id: 3,
+      name: r'geminiModel',
+      type: IsarType.string,
+    ),
+    r'goalCalories': PropertySchema(
+      id: 4,
       name: r'goalCalories',
       type: IsarType.double,
     ),
     r'goalCarbs': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'goalCarbs',
       type: IsarType.double,
     ),
     r'goalFats': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'goalFats',
       type: IsarType.double,
     ),
     r'goalFibers': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'goalFibers',
       type: IsarType.double,
     ),
     r'goalProteins': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'goalProteins',
       type: IsarType.double,
     ),
     r'heightCm': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'heightCm',
       type: IsarType.double,
     ),
     r'name': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'name',
       type: IsarType.string,
     ),
     r'trackingMode': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'trackingMode',
       type: IsarType.string,
     ),
     r'use8020Mode': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'use8020Mode',
       type: IsarType.bool,
     )
@@ -104,6 +109,12 @@ int _userProfileEntityEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.geminiModel;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.trackingMode.length * 3;
   return bytesCount;
@@ -118,15 +129,16 @@ void _userProfileEntitySerialize(
   writer.writeLong(offsets[0], object.age);
   writer.writeDouble(offsets[1], object.bodyFatPercentage);
   writer.writeString(offsets[2], object.geminiApiKey);
-  writer.writeDouble(offsets[3], object.goalCalories);
-  writer.writeDouble(offsets[4], object.goalCarbs);
-  writer.writeDouble(offsets[5], object.goalFats);
-  writer.writeDouble(offsets[6], object.goalFibers);
-  writer.writeDouble(offsets[7], object.goalProteins);
-  writer.writeDouble(offsets[8], object.heightCm);
-  writer.writeString(offsets[9], object.name);
-  writer.writeString(offsets[10], object.trackingMode);
-  writer.writeBool(offsets[11], object.use8020Mode);
+  writer.writeString(offsets[3], object.geminiModel);
+  writer.writeDouble(offsets[4], object.goalCalories);
+  writer.writeDouble(offsets[5], object.goalCarbs);
+  writer.writeDouble(offsets[6], object.goalFats);
+  writer.writeDouble(offsets[7], object.goalFibers);
+  writer.writeDouble(offsets[8], object.goalProteins);
+  writer.writeDouble(offsets[9], object.heightCm);
+  writer.writeString(offsets[10], object.name);
+  writer.writeString(offsets[11], object.trackingMode);
+  writer.writeBool(offsets[12], object.use8020Mode);
 }
 
 UserProfileEntity _userProfileEntityDeserialize(
@@ -139,16 +151,17 @@ UserProfileEntity _userProfileEntityDeserialize(
   object.age = reader.readLong(offsets[0]);
   object.bodyFatPercentage = reader.readDouble(offsets[1]);
   object.geminiApiKey = reader.readStringOrNull(offsets[2]);
-  object.goalCalories = reader.readDouble(offsets[3]);
-  object.goalCarbs = reader.readDouble(offsets[4]);
-  object.goalFats = reader.readDouble(offsets[5]);
-  object.goalFibers = reader.readDouble(offsets[6]);
-  object.goalProteins = reader.readDouble(offsets[7]);
-  object.heightCm = reader.readDouble(offsets[8]);
+  object.geminiModel = reader.readStringOrNull(offsets[3]);
+  object.goalCalories = reader.readDouble(offsets[4]);
+  object.goalCarbs = reader.readDouble(offsets[5]);
+  object.goalFats = reader.readDouble(offsets[6]);
+  object.goalFibers = reader.readDouble(offsets[7]);
+  object.goalProteins = reader.readDouble(offsets[8]);
+  object.heightCm = reader.readDouble(offsets[9]);
   object.id = id;
-  object.name = reader.readString(offsets[9]);
-  object.trackingMode = reader.readString(offsets[10]);
-  object.use8020Mode = reader.readBool(offsets[11]);
+  object.name = reader.readString(offsets[10]);
+  object.trackingMode = reader.readString(offsets[11]);
+  object.use8020Mode = reader.readBool(offsets[12]);
   return object;
 }
 
@@ -166,7 +179,7 @@ P _userProfileEntityDeserializeProp<P>(
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readDouble(offset)) as P;
     case 5:
@@ -178,10 +191,12 @@ P _userProfileEntityDeserializeProp<P>(
     case 8:
       return (reader.readDouble(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 10:
       return (reader.readString(offset)) as P;
     case 11:
+      return (reader.readString(offset)) as P;
+    case 12:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -555,6 +570,160 @@ extension UserProfileEntityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'geminiApiKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'geminiModel',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'geminiModel',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'geminiModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'geminiModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'geminiModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'geminiModel',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'geminiModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'geminiModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'geminiModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'geminiModel',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'geminiModel',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      geminiModelIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'geminiModel',
         value: '',
       ));
     });
@@ -1345,6 +1514,20 @@ extension UserProfileEntityQuerySortBy
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      sortByGeminiModel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'geminiModel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      sortByGeminiModelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'geminiModel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
       sortByGoalCalories() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'goalCalories', Sort.asc);
@@ -1515,6 +1698,20 @@ extension UserProfileEntityQuerySortThenBy
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      thenByGeminiModel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'geminiModel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      thenByGeminiModelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'geminiModel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
       thenByGoalCalories() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'goalCalories', Sort.asc);
@@ -1678,6 +1875,13 @@ extension UserProfileEntityQueryWhereDistinct
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QDistinct>
+      distinctByGeminiModel({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'geminiModel', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QDistinct>
       distinctByGoalCalories() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'goalCalories');
@@ -1766,6 +1970,13 @@ extension UserProfileEntityQueryProperty
       geminiApiKeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'geminiApiKey');
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, String?, QQueryOperations>
+      geminiModelProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'geminiModel');
     });
   }
 
