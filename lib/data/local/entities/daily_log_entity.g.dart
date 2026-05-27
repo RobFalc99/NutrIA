@@ -37,6 +37,11 @@ const DailyLogEntitySchema = CollectionSchema(
       id: 3,
       name: r'waterGlasses',
       type: IsarType.long,
+    ),
+    r'waterMl': PropertySchema(
+      id: 4,
+      name: r'waterMl',
+      type: IsarType.long,
     )
   },
   estimateSize: _dailyLogEntityEstimateSize,
@@ -102,6 +107,7 @@ void _dailyLogEntitySerialize(
     object.meals,
   );
   writer.writeLong(offsets[3], object.waterGlasses);
+  writer.writeLong(offsets[4], object.waterMl);
 }
 
 DailyLogEntity _dailyLogEntityDeserialize(
@@ -122,6 +128,7 @@ DailyLogEntity _dailyLogEntityDeserialize(
       ) ??
       [];
   object.waterGlasses = reader.readLong(offsets[3]);
+  object.waterMl = reader.readLong(offsets[4]);
   return object;
 }
 
@@ -145,6 +152,8 @@ P _dailyLogEntityDeserializeProp<P>(
           ) ??
           []) as P;
     case 3:
+      return (reader.readLong(offset)) as P;
+    case 4:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -666,6 +675,62 @@ extension DailyLogEntityQueryFilter
       ));
     });
   }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterFilterCondition>
+      waterMlEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'waterMl',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterFilterCondition>
+      waterMlGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'waterMl',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterFilterCondition>
+      waterMlLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'waterMl',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterFilterCondition>
+      waterMlBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'waterMl',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension DailyLogEntityQueryObject
@@ -719,6 +784,19 @@ extension DailyLogEntityQuerySortBy
       sortByWaterGlassesDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'waterGlasses', Sort.desc);
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterSortBy> sortByWaterMl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'waterMl', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterSortBy>
+      sortByWaterMlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'waterMl', Sort.desc);
     });
   }
 }
@@ -775,6 +853,19 @@ extension DailyLogEntityQuerySortThenBy
       return query.addSortBy(r'waterGlasses', Sort.desc);
     });
   }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterSortBy> thenByWaterMl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'waterMl', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QAfterSortBy>
+      thenByWaterMlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'waterMl', Sort.desc);
+    });
+  }
 }
 
 extension DailyLogEntityQueryWhereDistinct
@@ -796,6 +887,12 @@ extension DailyLogEntityQueryWhereDistinct
       distinctByWaterGlasses() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'waterGlasses');
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, DailyLogEntity, QDistinct> distinctByWaterMl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'waterMl');
     });
   }
 }
@@ -830,6 +927,12 @@ extension DailyLogEntityQueryProperty
   QueryBuilder<DailyLogEntity, int, QQueryOperations> waterGlassesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'waterGlasses');
+    });
+  }
+
+  QueryBuilder<DailyLogEntity, int, QQueryOperations> waterMlProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'waterMl');
     });
   }
 }

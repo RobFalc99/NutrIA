@@ -65,12 +65,14 @@ class DailyLog {
   final DateTime date;
   final List<Meal> meals;
   final int waterGlasses;
+  final int waterMl;
   final bool isTracked; // Fondamentale per l'80/20: segna se la giornata fa parte dell'80% tracciato o del 20% libero
 
   DailyLog({
     required this.date,
     required this.meals,
     this.waterGlasses = 0,
+    this.waterMl = 0,
     this.isTracked = true,
   });
 

@@ -10,6 +10,7 @@ class DailyLogEntity {
   late DateTime date; // Salvato all'inizio del giorno (es. 2024-05-26 00:00:00)
 
   int waterGlasses = 0;
+  int waterMl = 0;
   bool isTracked = true; // Modalità 80/20
 
   List<MealEntity> meals = [];

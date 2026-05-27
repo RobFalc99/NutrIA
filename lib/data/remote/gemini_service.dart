@@ -97,6 +97,111 @@ Il formato JSON richiesto deve essere esattamente questo:
     }
   }
 
+  /// Analizza una descrizione testuale di un singolo alimento e restituisce un solo Food (riferito a 100g).
+  Future<Food?> analyzeSingleFood(String text) async {
+    final systemPrompt = '''
+Sei un nutrizionista esperto ed estremamente preciso.
+Il tuo compito è analizzare il singolo alimento o ingrediente fornito dall'utente, stimando accuratamente i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di quell'alimento.
+Importante: Devi restituire solo ed esclusivamente un singolo alimento.
+
+Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
+
+Il formato JSON richiesto deve essere esattamente questo:
+{
+  "name": "Nome Alimento in Italiano",
+  "brand": "Marca se menzionata, altrimenti null",
+  "caloriesPer100g": 120.0,
+  "proteinsPer100g": 10.5,
+  "carbsPer100g": 2.0,
+  "fatsPer100g": 5.0,
+  "fibersPer100g": 1.5
+}
+''';
+
+    final model = GenerativeModel(
+      model: modelName,
+      apiKey: apiKey,
+      systemInstruction: Content.system(systemPrompt),
+    );
+
+    try {
+      final response = await model.generateContent([Content.text(text)]);
+      if (response.text != null) {
+        final cleanJson = response.text!.trim();
+        final block = _extractJsonBlock(cleanJson);
+        final item = Map<String, dynamic>.from(json.decode(block));
+        
+        final String name = _findValue(item, ['name', 'nome', 'alimento', 'prodotto']) ?? 'Sconosciuto';
+        final String? brand = _findValue(item, ['brand', 'marca']);
+        final double calories = _parseDouble(_findValue(item, ['caloriesPer100g', 'calories_per_100g', 'calories', 'calorie', 'kcal']) ?? 0.0);
+        final double proteins = _parseDouble(_findValue(item, ['proteinsPer100g', 'proteins_per_100g', 'proteins', 'proteine']) ?? 0.0);
+        final double carbs = _parseDouble(_findValue(item, ['carbsPer100g', 'carbs_per_100g', 'carbs', 'carboidrati']) ?? 0.0);
+        final double fats = _parseDouble(_findValue(item, ['fatsPer100g', 'fats_per_100g', 'fats', 'grassi']) ?? 0.0);
+        final double fibers = _parseDouble(_findValue(item, ['fibersPer100g', 'fibers_per_100g', 'fibers', 'fibre']) ?? 0.0);
+
+        return Food(
+          id: 'ai_single_${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
+          name: name,
+          brand: brand,
+          caloriesPer100g: calories,
+          proteinsPer100g: proteins,
+          carbsPer100g: carbs,
+          fatsPer100g: fats,
+          fibersPer100g: fibers,
+          isCustom: true,
+        );
+      }
+    } catch (e) {
+      print('Errore Gemini Single Food Analysis: $e');
+    }
+    return null;
+  }
+
+  /// Estrae i valori nutrizionali da un'immagine dell'etichetta nutrizionale (macros).
+  Future<Map<String, dynamic>?> analyzeMacroImage(List<int> imageBytes) async {
+    final systemPrompt = '''
+Sei un assistente IA specializzato nella lettura di etichette nutrizionali.
+Analizza l'immagine fornita (che rappresenta una tabella o etichetta nutrizionale) ed estrai accuratamente i macronutrienti riferiti a 100g o 100ml di prodotto.
+Se nell'etichetta sono presenti sia i valori per 100g che per porzione, estrai ESCLUSIVAMENTE quelli riferiti a 100g (o 100ml).
+
+Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
+
+Il formato JSON richiesto deve essere esattamente questo:
+{
+  "name": "Nome alimento se visibile, altrimenti vuoto",
+  "brand": "Marca se visibile, altrimenti vuoto",
+  "caloriesPer100g": 120.0,
+  "proteinsPer100g": 10.5,
+  "carbsPer100g": 2.0,
+  "fatsPer100g": 5.0,
+  "fibersPer100g": 1.5
+}
+''';
+
+    final model = GenerativeModel(
+      model: modelName,
+      apiKey: apiKey,
+      systemInstruction: Content.system(systemPrompt),
+    );
+
+    try {
+      final imagePart = DataPart('image/jpeg', Uint8List.fromList(imageBytes));
+      final response = await model.generateContent([
+        Content.multi([TextPart('Estrai i macro per 100g da questa tabella nutrizionale.'), imagePart])
+      ]);
+
+      if (response.text != null) {
+        final cleanJson = response.text!.trim();
+        final block = _extractJsonBlock(cleanJson);
+        final decoded = json.decode(block);
+        return Map<String, dynamic>.from(decoded);
+      }
+    } catch (e) {
+      print('Errore Gemini Macro Label Extraction: $e');
+    }
+    return null;
+  }
+
   double _parseDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is num) return value.toDouble();

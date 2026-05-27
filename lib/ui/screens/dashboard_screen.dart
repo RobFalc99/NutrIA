@@ -4,8 +4,36 @@ import '../../providers/app_state.dart';
 import '../../data/local/entities/daily_log_entity.dart';
 import '../../domain/models.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  int _selectedWaterMl = 250; // Quantità di acqua selezionata di default (ml)
+
+  String _formatSelectedDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final tomorrow = today.add(const Duration(days: 1));
+    
+    final cleanDate = DateTime(date.year, date.month, date.day);
+    
+    if (cleanDate == today) return 'Oggi';
+    if (cleanDate == yesterday) return 'Ieri';
+    if (cleanDate == tomorrow) return 'Domani';
+    
+    final weekdays = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+    final months = [
+      'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+      'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+    ];
+    
+    return '${weekdays[date.weekday - 1]} ${date.day} ${months[date.month - 1]}';
+  }
 
   // Mostra il foglio modale con le opzioni di aggiunta
   void _showAddMealOptions(BuildContext context, String defaultMeal) {
@@ -109,6 +137,91 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Selettore Data Premium (Glassmorphic)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: accentCyan, size: 20),
+                    onPressed: () => appState.previousDay(),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: appState.selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: accentCyan,
+                                onPrimary: Colors.black,
+                                surface: Color(0xFF16161D),
+                                onSurface: Colors.white,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        appState.setSelectedDate(picked);
+                      }
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today_rounded, color: accentCyan, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatSelectedDate(appState.selectedDate),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (appState.selectedDate.isAfter(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day))) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accentYellow.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: accentYellow.withOpacity(0.3)),
+                            ),
+                            child: const Text(
+                              'PIANIFICAZIONE',
+                              style: TextStyle(
+                                color: accentYellow,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_forward_ios_rounded, color: accentCyan, size: 20),
+                    onPressed: () => appState.nextDay(),
+                  ),
+                ],
+              ),
+            ),
+
             // 80/20 Cheat Day Toggle (Elegante Glassmorphic Card)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -307,43 +420,79 @@ class DashboardScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.local_drink, color: Colors.blueAccent, size: 28),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          const Text(
-                            'Idratazione locale',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                          const Icon(Icons.local_drink, color: Colors.blueAccent, size: 28),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Idratazione',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                              Text(
+                                '${(currentDay.waterMl == 0 && currentDay.waterGlasses > 0) ? currentDay.waterGlasses * 250 : currentDay.waterMl} ml totali',
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline, color: Colors.white54),
+                            onPressed: () => appState.removeWaterMl(_selectedWaterMl),
                           ),
                           Text(
-                            'Bicchieri d\'acqua: ${currentDay.waterGlasses}',
-                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            '${(currentDay.waterMl == 0 && currentDay.waterGlasses > 0) ? currentDay.waterGlasses * 250 : currentDay.waterMl}',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
+                            onPressed: () => appState.addWaterMl(_selectedWaterMl),
                           ),
                         ],
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
                   Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: Colors.white54),
-                        onPressed: () => appState.removeWaterGlass(),
-                      ),
-                      Text(
-                        '${currentDay.waterGlasses}',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
-                        onPressed: () => appState.addWaterGlass(),
-                      ),
-                    ],
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [100, 250, 500, 750].map((ml) {
+                      final isSelected = _selectedWaterMl == ml;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: ChoiceChip(
+                            label: Text('$ml ml'),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _selectedWaterMl = ml;
+                                });
+                              }
+                            },
+                            selectedColor: Colors.blueAccent.withOpacity(0.3),
+                            backgroundColor: Colors.white.withOpacity(0.03),
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white54,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),

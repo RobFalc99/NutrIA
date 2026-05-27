@@ -18,6 +18,9 @@ class AppState extends ChangeNotifier {
   List<Meal> _customMeals = [];
   bool isLoadingOnline = false;
 
+  DateTime _selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime get selectedDate => _selectedDate;
+
   AppState(this.isar) {
     _init();
   }
@@ -36,15 +39,34 @@ class AppState extends ChangeNotifier {
       currentUser = newUser;
     }
 
-    // Carica la giornata di oggi
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    
-    currentDayLog = await isar.dailyLogEntitys.where().dateEqualTo(today).findFirst();
+    await loadDayLog(_selectedDate);
+
+    // *** NOTIFICA SUBITO dopo aver caricato dati locali ***
+    notifyListeners();
+
+    // Carica cibi online (operazione di rete, in background)
+    await loadOnlineData();
+  }
+
+  Future<void> setSelectedDate(DateTime date) async {
+    _selectedDate = DateTime(date.year, date.month, date.day);
+    await loadDayLog(_selectedDate);
+  }
+
+  Future<void> nextDay() async {
+    await setSelectedDate(_selectedDate.add(const Duration(days: 1)));
+  }
+
+  Future<void> previousDay() async {
+    await setSelectedDate(_selectedDate.subtract(const Duration(days: 1)));
+  }
+
+  Future<void> loadDayLog(DateTime date) async {
+    currentDayLog = await isar.dailyLogEntitys.where().dateEqualTo(date).findFirst();
     
     if (currentDayLog == null) {
       final newLog = DailyLogEntity()
-        ..date = today
+        ..date = date
         ..isTracked = currentUser?.use8020Mode ?? true;
         
       await isar.writeTxn(() async {
@@ -53,28 +75,22 @@ class AppState extends ChangeNotifier {
       currentDayLog = newLog;
     }
 
-    // Carica i log degli ultimi 7 giorni
-    final weekStart = today.subtract(const Duration(days: 6));
+    // Carica i log dei 7 giorni intorno a quella data per le statistiche settimanali
+    final weekStart = date.subtract(const Duration(days: 6));
     _weeklyLogs = await isar.dailyLogEntitys
         .filter()
         .dateGreaterThan(weekStart.subtract(const Duration(seconds: 1)))
         .and()
-        .dateLessThan(today.add(const Duration(seconds: 1)))
+        .dateLessThan(date.add(const Duration(seconds: 1)))
         .findAll();
 
-    // Inserisci quello di oggi in _weeklyLogs se non c'è già
-    if (!_weeklyLogs.any((e) => _isSameDay(e.date, today))) {
+    if (!_weeklyLogs.any((e) => _isSameDay(e.date, date))) {
       _weeklyLogs.add(currentDayLog!);
     }
 
-    // *** NOTIFICA SUBITO dopo aver caricato dati locali ***
-    // Così Dashboard e ProfileScreen si aggiornano immediatamente
-    // senza dover aspettare il completamento della chiamata di rete.
     notifyListeners();
-
-    // Carica cibi online (operazione di rete, in background)
-    await loadOnlineData();
   }
+
 
   bool _isSameDay(DateTime d1, DateTime d2) {
     return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
@@ -136,11 +152,26 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  // Aggiungi un bicchiere d'acqua
+  // Aggiungi un bicchiere d'acqua (250 ml di default)
   Future<void> addWaterGlass() async {
+    await addWaterMl(250);
+  }
+
+  // Rimuovi un bicchiere d'acqua (250 ml di default)
+  Future<void> removeWaterGlass() async {
+    await removeWaterMl(250);
+  }
+
+  // Aggiungi acqua in ml
+  Future<void> addWaterMl(int ml) async {
     if (currentDayLog != null) {
       await isar.writeTxn(() async {
-        currentDayLog!.waterGlasses += 1;
+        // Se waterMl era a 0 ma waterGlasses era popolato, facciamo fallback
+        if (currentDayLog!.waterMl == 0 && currentDayLog!.waterGlasses > 0) {
+          currentDayLog!.waterMl = currentDayLog!.waterGlasses * 250;
+        }
+        currentDayLog!.waterMl += ml;
+        currentDayLog!.waterGlasses = (currentDayLog!.waterMl / 250).ceil();
         await isar.dailyLogEntitys.put(currentDayLog!);
       });
       // Aggiorna in _weeklyLogs
@@ -152,19 +183,26 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // Rimuovi un bicchiere d'acqua
-  Future<void> removeWaterGlass() async {
-    if (currentDayLog != null && currentDayLog!.waterGlasses > 0) {
-      await isar.writeTxn(() async {
-        currentDayLog!.waterGlasses -= 1;
-        await isar.dailyLogEntitys.put(currentDayLog!);
-      });
-      // Aggiorna in _weeklyLogs
-      final index = _weeklyLogs.indexWhere((e) => _isSameDay(e.date, currentDayLog!.date));
-      if (index != -1) {
-        _weeklyLogs[index] = currentDayLog!;
+  // Rimuovi acqua in ml
+  Future<void> removeWaterMl(int ml) async {
+    if (currentDayLog != null) {
+      // Se waterMl era a 0 ma waterGlasses era popolato, facciamo fallback
+      if (currentDayLog!.waterMl == 0 && currentDayLog!.waterGlasses > 0) {
+        currentDayLog!.waterMl = currentDayLog!.waterGlasses * 250;
       }
-      notifyListeners();
+      if (currentDayLog!.waterMl > 0) {
+        await isar.writeTxn(() async {
+          currentDayLog!.waterMl = (currentDayLog!.waterMl - ml).clamp(0, 99999);
+          currentDayLog!.waterGlasses = (currentDayLog!.waterMl / 250).ceil();
+          await isar.dailyLogEntitys.put(currentDayLog!);
+        });
+        // Aggiorna in _weeklyLogs
+        final index = _weeklyLogs.indexWhere((e) => _isSameDay(e.date, currentDayLog!.date));
+        if (index != -1) {
+          _weeklyLogs[index] = currentDayLog!;
+        }
+        notifyListeners();
+      }
     }
   }
 
@@ -288,6 +326,7 @@ class AppState extends ChangeNotifier {
     return DailyLog(
       date: entity.date,
       waterGlasses: entity.waterGlasses,
+      waterMl: (entity.waterMl == 0 && entity.waterGlasses > 0) ? entity.waterGlasses * 250 : entity.waterMl,
       isTracked: entity.isTracked,
       meals: entity.meals.map((me) {
         return Meal(
@@ -311,6 +350,36 @@ class AppState extends ChangeNotifier {
         );
       }).toList(),
     );
+  }
+
+  // Ottieni la cronologia degli alimenti usati
+  Future<List<Food>> getFoodHistory() async {
+    try {
+      final logs = await isar.dailyLogEntitys.where().findAll();
+      final Map<String, Food> uniqueFoods = {};
+      for (final log in logs) {
+        for (final meal in log.meals) {
+          for (final item in meal.items) {
+            if (item.foodId != null && item.foodName != null) {
+              uniqueFoods[item.foodId!] = Food(
+                id: item.foodId!,
+                name: item.foodName!,
+                caloriesPer100g: item.caloriesPer100g,
+                proteinsPer100g: item.proteinsPer100g,
+                carbsPer100g: item.carbsPer100g,
+                fatsPer100g: item.fatsPer100g,
+                fibersPer100g: item.fibersPer100g,
+                isOnline: item.isOnline,
+              );
+            }
+          }
+        }
+      }
+      return uniqueFoods.values.toList().reversed.toList();
+    } catch (e) {
+      print('Errore caricamento cronologia cibi: $e');
+      return [];
+    }
   }
 
   // Costruisce ed espone la WeeklyStats combinando il diario storico con Isar
