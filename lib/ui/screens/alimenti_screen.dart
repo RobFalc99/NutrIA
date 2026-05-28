@@ -72,16 +72,35 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   void _startListening() async {
     final status = await Permission.microphone.request();
     if (status.isGranted) {
+      // Rumore/feedback acustico e tattile premium all'avvio
+      try {
+        SystemSound.play(SystemSoundType.click);
+        HapticFeedback.mediumImpact();
+      } catch (e) {
+        debugPrint("Feedback acustico non supportato: $e");
+      }
+
+      final String initialText = _singleFoodAiController.text.trim();
+
       setState(() {
         _isListening = true;
       });
+
       await _speechToText.listen(
         onResult: (result) {
           setState(() {
-            _singleFoodAiController.text = result.recognizedWords;
+            final words = result.recognizedWords;
+            if (initialText.isEmpty) {
+              _singleFoodAiController.text = words;
+            } else {
+              _singleFoodAiController.text = "$initialText $words";
+            }
           });
         },
         localeId: 'it_IT',
+        // Il microfono non si deve staccare in automatico
+        listenFor: const Duration(minutes: 10),
+        pauseFor: const Duration(seconds: 60),
       );
     } else {
       if (mounted) {

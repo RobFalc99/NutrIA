@@ -16,6 +16,16 @@ class GeminiService {
 Sei un nutrizionista esperto ed estremamente preciso.
 Il tuo compito è analizzare la descrizione del pasto fornito dall'utente ed estrarre i singoli ingredienti/alimenti, stimando accuratamente la loro grammatura in grammi e calcolando i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di ciascun alimento.
 
+REGOLE TASSATIVE PER LA STIMA DELLA GRAMMATURA (amountGrams):
+1. SE L'UTENTE SPECIFICA UNA GRAMMATURA O QUANTITÀ NUMERICA CHIARA (es. "100g di pasta", "pasta 80g", "80 grammi", "tonno da 80g", "un uovo da 60 grammi"), devi ASSOLUTAMENTE impostare il campo 'amountGrams' a quel valore preciso (es. 100.0, 80.0, 60.0). NON alterare né stimare valori diversi quando sono esplicitati!
+2. SE L'UTENTE NON SPECIFICA LA GRAMMATURA (es. "un piatto di pasta", "scatoletta di tonno", "un uovo", "un cucchiaio d'olio"), devi stimare una grammatura altamente realistica basandoti sulle porzioni standard della cucina italiana:
+   - Un piatto di pasta o riso standard: ~80g a 100g (peso a crudo).
+   - Un cucchiaio di olio extravergine d'oliva: ~10g.
+   - Un uovo intero medio: ~60g.
+   - Una scatoletta di tonno classica: ~80g (o ~52g sgocciolato).
+   - Una fetta di pane comune: ~30g a 40g.
+   - Un petto di pollo comune: ~120g a 150g.
+
 Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
 
 Il formato JSON richiesto deve essere esattamente questo:
@@ -56,6 +66,16 @@ Il formato JSON richiesto deve essere esattamente questo:
     final systemPrompt = '''
 Sei un nutrizionista esperto ed estremamente preciso.
 Il tuo compito è analizzare l'immagine del pasto fornito dall'utente (e considerare qualsiasi eventuale testo descrittivo aggiuntivo) ed estrarre i singoli ingredienti/alimenti, stimando accuratamente la loro grammatura in grammi e calcolando i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di ciascun alimento.
+
+REGOLE TASSATIVE PER LA STIMA DELLA GRAMMATURA (amountGrams):
+1. SE L'UTENTE SPECIFICA UNA GRAMMATURA O QUANTITÀ NUMERICA CHIARA NEL TESTO AGGIUNTIVO (es. "100g di pasta", "pasta 80g", "80 grammi", "tonno da 80g", "un uovo da 60 grammi"), devi ASSOLUTAMENTE impostare il campo 'amountGrams' a quel valore preciso (es. 100.0, 80.0, 60.0). NON alterare né stimare valori diversi quando sono esplicitati!
+2. SE L'UTENTE NON SPECIFICA LA GRAMMATURA (es. "un piatto di pasta", "scatoletta di tonno", "un uovo", "un cucchiaio d'olio"), devi stimare una grammatura altamente realistica basandoti sull'aspetto visivo e sulle porzioni standard della cucina italiana:
+   - Un piatto di pasta o riso standard: ~80g a 100g (peso a crudo).
+   - Un cucchiaio di olio extravergine d'oliva: ~10g.
+   - Un uovo intero medio: ~60g.
+   - Una scatoletta di tonno classica: ~80g (o ~52g sgocciolato).
+   - Una fetta di pane comune: ~30g a 40g.
+   - Un petto di pollo comune: ~120g a 150g.
 
 Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
 

@@ -57,6 +57,29 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
+    _customProtController.addListener(_updateCalculatedCalories);
+    _customCarbController.addListener(_updateCalculatedCalories);
+    _customFatController.addListener(_updateCalculatedCalories);
+  }
+
+  void _updateCalculatedCalories() {
+    final protText = _customProtController.text.trim();
+    final carbText = _customCarbController.text.trim();
+    final fatText = _customFatController.text.trim();
+
+    // Se tutti i campi sono vuoti, non forzare le calorie a zero per consentire l'inserimento libero
+    if (protText.isEmpty && carbText.isEmpty && fatText.isEmpty) {
+      return;
+    }
+
+    final prot = double.tryParse(protText) ?? 0.0;
+    final carb = double.tryParse(carbText) ?? 0.0;
+    final fat = double.tryParse(fatText) ?? 0.0;
+
+    final double calculated = (prot * 4.0) + (carb * 4.0) + (fat * 9.0);
+    
+    // Mostra il valore calcolato all'utente
+    _customCalController.text = calculated.toStringAsFixed(calculated % 1 == 0 ? 0 : 1);
   }
 
   @override

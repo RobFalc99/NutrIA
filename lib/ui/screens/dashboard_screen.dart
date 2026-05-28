@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -1421,16 +1422,35 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
   void _startListening() async {
     final status = await Permission.microphone.request();
     if (status.isGranted) {
+      // Rumore/feedback acustico e tattile premium all'avvio
+      try {
+        SystemSound.play(SystemSoundType.click);
+        HapticFeedback.mediumImpact();
+      } catch (e) {
+        debugPrint("Feedback acustico non supportato: $e");
+      }
+
+      final String initialText = _textController.text.trim();
+
       setState(() {
         _isListening = true;
       });
+
       await _speechToText.listen(
         onResult: (result) {
           setState(() {
-            _textController.text = result.recognizedWords;
+            final words = result.recognizedWords;
+            if (initialText.isEmpty) {
+              _textController.text = words;
+            } else {
+              _textController.text = "$initialText $words";
+            }
           });
         },
         localeId: 'it_IT',
+        // Il microfono non si deve staccare in automatico
+        listenFor: const Duration(minutes: 10),
+        pauseFor: const Duration(seconds: 60),
       );
     } else {
       if (mounted) {
