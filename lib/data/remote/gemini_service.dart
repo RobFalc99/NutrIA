@@ -352,4 +352,35 @@ Il formato JSON richiesto deve essere esattamente questo:
       );
     }).toList();
   }
+
+  Future<String?> extractBarcodeFromImage(List<int> imageBytes) async {
+    final systemPrompt = '''
+Sei un estrattore di codice a barre preciso ed efficiente.
+Analizza l'immagine fornita, trova il codice a barre principale (barcode EAN-13, EAN-8, UPC o simili) e restituisci ESCLUSIVAMENTE la sequenza numerica pulita del codice a barre rilevato, senza spazi, senza a capo, senza commenti e senza formattazione markdown (es. 8001120003008).
+Se non riesci a trovare o decifrare alcun codice a barre numerico nell'immagine, rispondi ESCLUSIVAMENTE con la parola: ERROR
+''';
+
+    final model = GenerativeModel(
+      model: modelName,
+      apiKey: apiKey,
+      systemInstruction: Content.system(systemPrompt),
+    );
+
+    try {
+      final imagePart = DataPart('image/jpeg', Uint8List.fromList(imageBytes));
+      final response = await model.generateContent([
+        Content.multi([TextPart('Estrai il codice a barre numerico da questa immagine.'), imagePart])
+      ]);
+
+      final text = response.text?.trim() ?? '';
+      if (text.isEmpty || text.contains('ERROR')) {
+        return null;
+      }
+      final digits = text.replaceAll(RegExp(r'\D'), '');
+      return digits.isNotEmpty ? digits : null;
+    } catch (e) {
+      print('Errore Gemini Barcode Extraction: $e');
+      return null;
+    }
+  }
 }

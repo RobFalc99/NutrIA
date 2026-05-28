@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../providers/app_state.dart';
 import '../../data/local/entities/daily_log_entity.dart';
 import '../../domain/models.dart';
@@ -1007,11 +1009,25 @@ class AddMealOptionsSheet extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Option 1: Pasto Completo con IA
+            // Option 1: Inserimento Manuale
             _buildOptionCard(
               context: context,
-              title: 'Pasto Completo con IA 🪄',
-              description: 'Descrivi il pasto a parole tue e Gemini estrarrà automaticamente tutti gli alimenti, pesi e calorie!',
+              title: 'Inserimento Manuale ✍️',
+              description: 'Cerca cibi nel database, scansiona codici a barre o inserisci alimenti personalizzati.',
+              color: accentPink,
+              icon: Icons.menu_book,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/addMeal', arguments: defaultMeal);
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Option 2: Inserimento con IA
+            _buildOptionCard(
+              context: context,
+              title: 'Inserimento con IA 🪄',
+              description: 'Invia una foto del piatto, aggiungi una descrizione (o entrambe) per scomporlo automaticamente!',
               color: accentCyan,
               icon: Icons.auto_awesome,
               onTap: () {
@@ -1021,20 +1037,6 @@ class AddMealOptionsSheet extends StatelessWidget {
                   barrierDismissible: false,
                   builder: (context) => WholeMealAiDialog(defaultMeal: defaultMeal),
                 );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Option 2: Inserimento Manuale
-            _buildOptionCard(
-              context: context,
-              title: 'Inserimento Avanzato 🛠️',
-              description: 'Cerca cibi nel database OFF, scansiona codici a barre o inserisci alimenti personalizzati.',
-              color: accentPink,
-              icon: Icons.menu_book,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/addMeal', arguments: defaultMeal);
               },
             ),
             const SizedBox(height: 12),
@@ -1114,6 +1116,7 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
   List<MealItem> _estimatedItems = [];
   bool _isLoading = false;
   String? _error;
+  File? _imageFile;
 
   @override
   void initState() {
@@ -1127,9 +1130,41 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
+      if (image != null) {
+        setState(() {
+          _imageFile = File(image.path);
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Errore durante la selezione dell\'immagine: $e';
+      });
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _imageFile = null;
+    });
+  }
+
   Future<void> _analyzeMeal() async {
     final text = _textController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _imageFile == null) {
+      setState(() {
+        _error = 'Inserisci una descrizione o seleziona una foto per procedere.';
+      });
+      return;
+    }
 
     final appState = context.read<AppState>();
     final service = appState.geminiService;
@@ -1148,7 +1183,14 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
     });
 
     try {
-      final items = await service.analyzeTextToMeals(text);
+      List<MealItem> items = [];
+      if (_imageFile != null) {
+        final bytes = await _imageFile!.readAsBytes();
+        items = await service.analyzeImageToMeals(bytes, additionalText: text.isEmpty ? null : text);
+      } else {
+        items = await service.analyzeTextToMeals(text);
+      }
+
       setState(() {
         _estimatedItems = items;
         if (items.isEmpty) {
@@ -1333,6 +1375,89 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              const Text('Foto del pasto (opzionale):', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 8),
+              if (_imageFile != null)
+                Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    Container(
+                      height: 160,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.06)),
+                        image: DecorationImage(
+                          image: FileImage(_imageFile!),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFFFF007F), size: 20),
+                          onPressed: _removeImage,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _pickImage(ImageSource.camera),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.02),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.04)),
+                          ),
+                          child: const Column(
+                            children: [
+                              Icon(Icons.camera_alt, color: Color(0xFF00FFC2), size: 20),
+                              SizedBox(height: 4),
+                              Text('Scatta Foto', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _pickImage(ImageSource.gallery),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.02),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.04)),
+                          ),
+                          child: const Column(
+                            children: [
+                              Icon(Icons.photo_library, color: Color(0xFFFF007F), size: 20),
+                              SizedBox(height: 4),
+                              Text('Galleria', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 16),
 
               const Text(
