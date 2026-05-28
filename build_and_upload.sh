@@ -32,6 +32,16 @@ done
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
+# Carica GITHUB_TOKEN da .env locale se presente
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    if [ -z "$GITHUB_TOKEN" ]; then
+        local_token=$(grep -E "^GITHUB_TOKEN=" "$SCRIPT_DIR/.env" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        if [ -n "$local_token" ]; then
+            GITHUB_TOKEN="$local_token"
+        fi
+    fi
+fi
+
 echo -e "${CYAN}==========================================${NC}"
 echo -e "${CYAN}   KCALcolatore Automation Pipeline (Linux)${NC}"
 echo -e "${CYAN}==========================================${NC}"
