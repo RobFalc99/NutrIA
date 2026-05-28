@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'dart:io';
 import '../../providers/app_state.dart';
 import '../../domain/models.dart';
@@ -38,6 +39,11 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   bool _isSingleFoodAiLoading = false;
   String? _singleFoodAiError;
 
+  // Speech to Text properties
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  bool _isListening = false;
+
   // Meal selezionato per inserimento
   String _selectedMealTarget = 'Colazione';
 
@@ -48,10 +54,54 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    try {
+      _speechEnabled = await _speechToText.initialize(
+        onError: (val) => debugPrint('Errore Speech: $val'),
+        onStatus: (val) => debugPrint('Stato Speech: $val'),
+      );
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint("Errore inizializzazione Speech: $e");
+    }
+  }
+
+  void _startListening() async {
+    final status = await Permission.microphone.request();
+    if (status.isGranted) {
+      setState(() {
+        _isListening = true;
+      });
+      await _speechToText.listen(
+        onResult: (result) {
+          setState(() {
+            _singleFoodAiController.text = result.recognizedWords;
+          });
+        },
+        localeId: 'it_IT',
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permesso microfono negato per la dettatura!')),
+        );
+      }
+    }
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    setState(() {
+      _isListening = false;
+    });
   }
 
   @override
   void dispose() {
+    _speechToText.stop();
     _tabController.dispose();
     _searchController.dispose();
     _singleFoodAiController.dispose();
@@ -580,6 +630,20 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
               hintStyle: const TextStyle(color: Colors.white24, fontSize: 12),
               filled: true,
               fillColor: Colors.white.withOpacity(0.03),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: _isListening ? const Color(0xFFFF007F) : const Color(0xFF00FFC2),
+                ),
+                onPressed: () {
+                  if (_isListening) {
+                    _stopListening();
+                  } else {
+                    _startListening();
+                  }
+                },
+                tooltip: 'Dettatura vocale 🎙️',
+              ),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),

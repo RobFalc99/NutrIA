@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import '../data/local/entities/daily_log_entity.dart';
 import '../data/local/entities/user_profile_entity.dart';
@@ -555,6 +556,34 @@ class AppState extends ChangeNotifier {
     return currentDayLog!.meals.fold(0.0, (sum, meal) {
       return sum + meal.items.fold(0.0, (s, item) => s + ((item.fibersPer100g * item.amountGrams) / 100));
     });
+  }
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    _updateNativeWidget();
+  }
+
+  void _updateNativeWidget() {
+    try {
+      final calories = currentCalories;
+      final goal = currentUser?.goalCalories ?? 2000.0;
+      final water = (currentDayLog != null)
+          ? ((currentDayLog!.waterMl == 0 && currentDayLog!.waterGlasses > 0)
+              ? currentDayLog!.waterGlasses * 250
+              : currentDayLog!.waterMl)
+          : 0;
+
+      const MethodChannel('com.example.kcal/widget').invokeMethod('updateWidget', {
+        'calories': calories.round(),
+        'goal': goal.round(),
+        'water': water,
+      }).catchError((e) {
+        // Ignora l'errore se la piattaforma non è ancora pronta o non è supportata
+      });
+    } catch (e) {
+      // Ignora errori di setup iniziale
+    }
   }
 }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:quick_actions/quick_actions.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_state.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'alimenti_screen.dart';
@@ -27,6 +29,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _requestInitialPermissions();
     _setupQuickActions();
+    _setupWidgetChannel();
   }
 
   Future<void> _requestInitialPermissions() async {
@@ -85,25 +88,94 @@ class _MainScreenState extends State<MainScreen> {
     _quickActions.setShortcutItems(const <ShortcutItem>[
       ShortcutItem(
         type: 'action_manual',
-        localizedTitle: 'Inserimento Manuale',
+        localizedTitle: 'Manuale',
         icon: 'ic_manual', // Icona nativa di fallback
       ),
       ShortcutItem(
         type: 'action_alimenti',
-        localizedTitle: 'Gestione Alimenti',
+        localizedTitle: 'Alimenti',
         icon: 'ic_alimenti',
       ),
       ShortcutItem(
         type: 'action_ia',
-        localizedTitle: 'Analisi Pasto IA',
+        localizedTitle: 'IA Pasto',
         icon: 'ic_ia',
       ),
       ShortcutItem(
         type: 'action_info',
-        localizedTitle: 'Informazioni kCali',
+        localizedTitle: 'Guida',
         icon: 'ic_info',
       ),
     ]);
+  }
+
+  void _setupWidgetChannel() {
+    const channel = MethodChannel('com.example.kcal/widget');
+    
+    // 1. Ascolta le azioni in tempo reale se l'app è già aperta
+    channel.setMethodCallHandler((call) async {
+      if (call.method == 'onWidgetAction') {
+        final String? action = call.arguments as String?;
+        if (action != null) {
+          _handleWidgetAction(action);
+        }
+      }
+    });
+
+    // 2. Controlla se c'è un'azione in sospeso (es. avviato a freddo)
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final String? action = await channel.invokeMethod<String>('getWidgetAction');
+        if (action != null) {
+          _handleWidgetAction(action);
+        }
+      } catch (e) {
+        debugPrint("Errore recupero azione widget iniziale: $e");
+      }
+    });
+  }
+
+  void _handleWidgetAction(String action) {
+    if (!mounted) return;
+    final appState = Provider.of<AppState>(context, listen: false);
+    
+    if (action == 'add_water') {
+      appState.addWaterMl(250);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Acqua registrata con successo! 💧 +250ml'),
+          backgroundColor: const Color(0xFF00FFC2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } else if (action == 'add_manual') {
+      final hour = DateTime.now().hour;
+      String defaultMeal = 'Colazione';
+      if (hour >= 11 && hour < 15) {
+        defaultMeal = 'Pranzo';
+      } else if (hour >= 15 && hour < 19) {
+        defaultMeal = 'Spuntini';
+      } else if (hour >= 19) {
+        defaultMeal = 'Cena';
+      }
+      Navigator.pushNamed(context, '/addMeal', arguments: defaultMeal);
+    } else if (action == 'ai_pasto') {
+      final hour = DateTime.now().hour;
+      String defaultMeal = 'Colazione';
+      if (hour >= 11 && hour < 15) {
+        defaultMeal = 'Pranzo';
+      } else if (hour >= 15 && hour < 19) {
+        defaultMeal = 'Spuntini';
+      } else if (hour >= 19) {
+        defaultMeal = 'Cena';
+      }
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => WholeMealAiDialog(defaultMeal: defaultMeal),
+      );
+    }
   }
 
   static const _accentCyan = Color(0xFF00FFC2);
