@@ -1399,6 +1399,8 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
   final SpeechToText _speechToText = SpeechToText();
   bool _speechEnabled = false;
   bool _isListening = false;
+  String _dictationInitialText = "";
+  String _dictationLastWords = "";
 
   @override
   void initState() {
@@ -1430,7 +1432,8 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
         debugPrint("Feedback acustico non supportato: $e");
       }
 
-      final String initialText = _textController.text.trim();
+      _dictationInitialText = _textController.text.trim();
+      _dictationLastWords = "";
 
       setState(() {
         _isListening = true;
@@ -1438,12 +1441,24 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
 
       await _speechToText.listen(
         onResult: (result) {
+          final words = result.recognizedWords.trim();
+          if (words.isEmpty) return;
+
           setState(() {
-            final words = result.recognizedWords;
-            if (initialText.isEmpty) {
-              _textController.text = words;
-            } else {
-              _textController.text = "$initialText $words";
+            // Se le nuove parole riconosciute non iniziano con quelle registrate in precedenza,
+            // significa che l'engine ha riavviato una frase a causa della pausa. Committiamo l'accumulo precedente!
+            if (_dictationLastWords.isNotEmpty && !words.toLowerCase().startsWith(_dictationLastWords.toLowerCase())) {
+              _dictationInitialText = _dictationInitialText.isEmpty
+                  ? _dictationLastWords
+                  : "$_dictationInitialText $_dictationLastWords";
+            }
+
+            _dictationLastWords = words;
+            _textController.text = _dictationInitialText.isEmpty ? words : "$_dictationInitialText $words";
+
+            if (result.finalResult) {
+              _dictationInitialText = _textController.text.trim();
+              _dictationLastWords = "";
             }
           });
         },

@@ -66,6 +66,27 @@ class _ProfileFormState extends State<ProfileForm> {
     _trackingMode = widget.user.trackingMode;
     _use8020Mode = widget.user.use8020Mode;
     _selectedModel = widget.user.geminiModel ?? 'gemma-4-26b-a4b-it';
+
+    _proteinsController.addListener(_updateCalculatedGoalCalories);
+    _carbsController.addListener(_updateCalculatedGoalCalories);
+    _fatsController.addListener(_updateCalculatedGoalCalories);
+  }
+
+  void _updateCalculatedGoalCalories() {
+    final protText = _proteinsController.text.trim();
+    final carbText = _carbsController.text.trim();
+    final fatText = _fatsController.text.trim();
+
+    if (protText.isEmpty && carbText.isEmpty && fatText.isEmpty) {
+      return;
+    }
+
+    final prot = double.tryParse(protText) ?? 0.0;
+    final carb = double.tryParse(carbText) ?? 0.0;
+    final fat = double.tryParse(fatText) ?? 0.0;
+
+    final double calculated = (prot * 4.0) + (carb * 4.0) + (fat * 9.0);
+    _caloriesController.text = calculated.toStringAsFixed(calculated % 1 == 0 ? 0 : 1);
   }
 
   @override
