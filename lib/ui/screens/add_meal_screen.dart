@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:io';
 import '../../providers/app_state.dart';
 import '../../domain/models.dart';
@@ -155,30 +156,19 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       return;
     }
 
-    final picker = ImagePicker();
-    try {
-      final image = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1280,
-        imageQuality: 90,
-      );
-      if (image != null) {
-        // Per ora mostra input manuale pre-compilato con placeholder
-        // In una vera app useremmo un plugin barcode scanner
-        setState(() {
-          _barcodeError = null;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Immagine catturata. Inserisci il codice a barre manualmente o usa i chip di test rapido.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore apertura fotocamera: $e')),
-      );
+    final String? scannedCode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BarcodeScannerScreen(),
+      ),
+    );
+
+    if (scannedCode != null && scannedCode.isNotEmpty) {
+      setState(() {
+        _barcodeController.text = scannedCode;
+        _barcodeError = null;
+      });
+      _scanBarcode(scannedCode);
     }
   }
 
@@ -382,6 +372,34 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
 
       // Mostra dialogo quantità prima di aggiungere
       _showAddQuantityDialog(newFood);
+    }
+  }
+
+  void _saveOnlyCustomFood() {
+    if (_customFormKey.currentState!.validate()) {
+      final appState = context.read<AppState>();
+      final newFood = Food(
+        id: 'local_custom_${DateTime.now().millisecondsSinceEpoch}',
+        name: _customNameController.text.trim(),
+        brand: _customBrandController.text.trim().isEmpty ? null : _customBrandController.text.trim(),
+        caloriesPer100g: double.tryParse(_customCalController.text) ?? 0,
+        proteinsPer100g: double.tryParse(_customProtController.text) ?? 0,
+        carbsPer100g: double.tryParse(_customCarbController.text) ?? 0,
+        fatsPer100g: double.tryParse(_customFatController.text) ?? 0,
+        fibersPer100g: double.tryParse(_customFibController.text) ?? 0,
+        isCustom: true,
+        isOnline: true,
+      );
+
+      appState.saveCustomFood(newFood);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${newFood.name} salvato tra i preferiti!'),
+          backgroundColor: const Color(0xFF00FFC2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -1309,16 +1327,34 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
               ),
             ),
 
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: _saveCustomFoodAndAdd,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: cyan,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              child: const Text('Crea ed Aggiungi al Pasto', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 15)),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _saveOnlyCustomFood,
+                    icon: Icon(Icons.favorite_border, color: cyan),
+                    label: Text('Salva Preferiti', style: TextStyle(color: cyan, fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: cyan),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _saveCustomFoodAndAdd,
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: const Text('Aggiungi Pasto', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: pink,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
           ],
@@ -1756,8 +1792,120 @@ class _FoodInfoSheetState extends State<_FoodInfoSheet> {
     return Column(
       children: [
         Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
-        Text(label, style: TextStyle(color: Colors.white38, fontSize: 10)),
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
       ],
     );
   }
 }
+
+// ── BARCODE REAL-TIME SCANNER ─────────────
+class BarcodeScannerScreen extends StatefulWidget {
+  const BarcodeScannerScreen({super.key});
+
+  @override
+  State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
+}
+
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+  final MobileScannerController controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+
+  bool _hasDetected = false;
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Scansiona Barcode', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            color: Colors.white,
+            icon: ValueListenableBuilder<MobileScannerState>(
+              valueListenable: controller,
+              builder: (context, state, child) {
+                switch (state.torchState) {
+                  case TorchState.off:
+                    return const Icon(Icons.flash_off, color: Colors.grey);
+                  case TorchState.on:
+                    return const Icon(Icons.flash_on, color: Color(0xFF00FFC2));
+                  default:
+                    return const Icon(Icons.flash_off, color: Colors.grey);
+                }
+              },
+            ),
+            iconSize: 20.0,
+            onPressed: () => controller.toggleTorch(),
+          ),
+          IconButton(
+            color: Colors.white,
+            icon: ValueListenableBuilder<MobileScannerState>(
+              valueListenable: controller,
+              builder: (context, state, child) {
+                switch (state.cameraDirection) {
+                  case CameraFacing.front:
+                    return const Icon(Icons.camera_front);
+                  case CameraFacing.back:
+                    return const Icon(Icons.camera_rear);
+                  default:
+                    return const Icon(Icons.camera_rear);
+                }
+              },
+            ),
+            iconSize: 20.0,
+            onPressed: () => controller.switchCamera(),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: controller,
+            onDetect: (capture) {
+              if (_hasDetected) return;
+              final List<Barcode> barcodes = capture.barcodes;
+              if (barcodes.isNotEmpty) {
+                final String? code = barcodes.first.rawValue;
+                if (code != null && code.isNotEmpty) {
+                  _hasDetected = true;
+                  Navigator.pop(context, code);
+                }
+              }
+            },
+          ),
+          // Elegant scanning box
+          Center(
+            child: Container(
+              width: 280,
+              height: 180,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF00FFC2), width: 2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Inquadra il codice a barre',
+                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
