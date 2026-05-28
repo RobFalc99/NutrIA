@@ -174,10 +174,10 @@ class AppState extends ChangeNotifier {
   GeminiService? get geminiService {
     final key = currentUser?.geminiApiKey;
     if (key == null || key.trim().isEmpty) return null;
-    final model = currentUser?.geminiModel ?? 'gemma-4-26b-a4b-it';
+    final model = currentUser?.geminiModel;
     return GeminiService(
       apiKey: key,
-      modelName: model.trim().isEmpty ? 'gemma-4-26b-a4b-it' : model,
+      modelName: (model == null || model.trim().isEmpty) ? 'gemini-2.0-flash-lite' : model.trim(),
     );
   }
 
@@ -350,7 +350,51 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Mappa la struttura Isar a quella di dominio per fare calcoli statistici coerenti
+  // Modifica la quantità di un alimento già inserito in un pasto
+  Future<void> updateMealItemAmount(String mealName, int itemIndex, double newGrams) async {
+    if (currentDayLog == null) return;
+
+    await isar.writeTxn(() async {
+      var mealList = List<MealEntity>.from(currentDayLog!.meals);
+      var mealIndex = mealList.indexWhere((m) => m.name == mealName);
+      if (mealIndex != -1) {
+        final updatedItems = List<MealItemEntity>.from(mealList[mealIndex].items);
+        if (itemIndex >= 0 && itemIndex < updatedItems.length) {
+          final existing = updatedItems[itemIndex];
+          final updated = MealItemEntity()
+            ..foodId = existing.foodId
+            ..foodName = existing.foodName
+            ..caloriesPer100g = existing.caloriesPer100g
+            ..proteinsPer100g = existing.proteinsPer100g
+            ..carbsPer100g = existing.carbsPer100g
+            ..fatsPer100g = existing.fatsPer100g
+            ..fibersPer100g = existing.fibersPer100g
+            ..amountGrams = newGrams
+            ..isOnline = existing.isOnline;
+          updatedItems[itemIndex] = updated;
+
+          mealList[mealIndex] = MealEntity()
+            ..id = mealList[mealIndex].id
+            ..name = mealList[mealIndex].name
+            ..isCustomOnline = mealList[mealIndex].isCustomOnline
+            ..items = updatedItems;
+
+          currentDayLog!.meals = mealList;
+          await isar.dailyLogEntitys.put(currentDayLog!);
+        }
+      }
+    });
+
+    final index = _weeklyLogs.indexWhere((e) => _isSameDay(e.date, currentDayLog!.date));
+    if (index != -1) {
+      _weeklyLogs[index] = currentDayLog!;
+    } else {
+      _weeklyLogs.add(currentDayLog!);
+    }
+    notifyListeners();
+  }
+
+
   DailyLog _mapEntityToDomain(DailyLogEntity entity) {
     return DailyLog(
       date: entity.date,
@@ -412,11 +456,15 @@ class AppState extends ChangeNotifier {
   }
 
   // Costruisce ed espone la WeeklyStats combinando il diario storico con Isar
+  // Usa gli ultimi 7 giorni ESCLUDENDO oggi (ieri → 7 giorni fa)
   WeeklyStats get weeklyStats {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
     final days = <DailyLog>[];
-    for (int i = 6; i >= 0; i--) {
+
+    // Giorni da 7 giorni fa a ieri (escluso oggi)
+    for (int i = 7; i >= 1; i--) {
       final d = today.subtract(Duration(days: i));
       final entity = _weeklyLogs.firstWhere(
         (element) => _isSameDay(element.date, d),
@@ -424,12 +472,28 @@ class AppState extends ChangeNotifier {
       );
       days.add(_mapEntityToDomain(entity));
     }
+
     return WeeklyStats(
-      startDate: today.subtract(const Duration(days: 6)),
-      endDate: today,
+      startDate: today.subtract(const Duration(days: 7)),
+      endDate: yesterday,
       days: days,
     );
   }
+
+  // True se ci sono almeno 7 giorni con log reali (pasti inseriti) nel DB
+  bool get hasEnoughDataForAverage {
+    // Conta i giorni (escluso oggi) che hanno almeno 1 pasto
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int count = 0;
+    for (final log in _weeklyLogs) {
+      if (!_isSameDay(log.date, today) && log.meals.isNotEmpty) {
+        count++;
+      }
+    }
+    return count >= 7;
+  }
+
 
   // Getter macro per il giorno corrente
   double get currentCalories {

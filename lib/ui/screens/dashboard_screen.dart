@@ -49,6 +49,144 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Dialogo modifica quantità alimento già inserito
+  void _showEditQuantityDialog(
+    BuildContext context,
+    AppState appState,
+    String mealName,
+    int itemIndex,
+    MealItemEntity item,
+  ) {
+    double amount = item.amountGrams;
+    final textController = TextEditingController(text: item.amountGrams.toInt().toString());
+
+    const accentCyan = Color(0xFF00FFC2);
+    const accentPink = Color(0xFFFF007F);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final cal = (item.caloriesPer100g * amount) / 100;
+          final prot = (item.proteinsPer100g * amount) / 100;
+          final carbs = (item.carbsPer100g * amount) / 100;
+          final fats = (item.fatsPer100g * amount) / 100;
+          final fibers = (item.fibersPer100g * amount) / 100;
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF16161D),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.edit, color: accentCyan, size: 18),
+                    const SizedBox(width: 8),
+                    const Text('Modifica quantità', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.foodName ?? 'Alimento',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: textController,
+                    keyboardType: TextInputType.number,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                    decoration: InputDecoration(
+                      labelText: 'Quantità (g)',
+                      labelStyle: const TextStyle(color: Colors.white60),
+                      suffixText: 'g',
+                      suffixStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.04),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    ),
+                    onChanged: (val) => setDialogState(() => amount = double.tryParse(val) ?? 0.0),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    children: [30, 50, 100, 150, 200, 250].map((g) => ActionChip(
+                      label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        textController.text = g.toString();
+                        setDialogState(() => amount = g.toDouble());
+                      },
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Valori calcolati:', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  _buildEditMacroRow('Calorie', '${cal.toStringAsFixed(1)} kcal', accentCyan),
+                  _buildEditMacroRow('Proteine', '${prot.toStringAsFixed(1)} g', accentPink),
+                  _buildEditMacroRow('Carbs', '${carbs.toStringAsFixed(1)} g', const Color(0xFFFFD700)),
+                  _buildEditMacroRow('Grassi', '${fats.toStringAsFixed(1)} g', const Color(0xFF00E676)),
+                  _buildEditMacroRow('Fibre', '${fibers.toStringAsFixed(1)} g', Colors.cyan),
+                ],
+              ),
+            ),
+            actionsPadding: const EdgeInsets.all(16),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annulla', style: TextStyle(color: Colors.white38)),
+              ),
+              ElevatedButton(
+                onPressed: amount <= 0 ? null : () {
+                  appState.updateMealItemAmount(mealName, itemIndex, amount);
+                  Navigator.pop(ctx);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentCyan,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Salva', style: TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEditMacroRow(String label, String value, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            ],
+          ),
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -102,28 +240,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Row(
           children: [
+            const Text(
+              'k',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+                letterSpacing: 0,
+              ),
+            ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: accentCyan.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
-                'KCAL',
+                'Cali',
                 style: TextStyle(
                   color: accentCyan,
                   fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  letterSpacing: 1.2,
+                  fontSize: 18,
+                  letterSpacing: 0.5,
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'colatore',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
               ),
             ),
           ],
@@ -537,34 +676,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Le statistiche medie escludono i giorni sbloccati (Cheat Days) per calcolare la reale aderenza ai target.',
+                      'Media ultimi 7 giorni (escluso oggi). Le medie escludono i Cheat Days.',
                       style: TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildWeeklyStatBox(
-                            'Calorie Medie',
-                            '${stats.averageCalories.toInt()} kcal',
-                            (stats.averageCalories <= user.goalCalories) ? accentCyan : accentPink,
-                          ),
+                    if (!appState.hasEnoughDataForAverage) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.white.withOpacity(0.06)),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildWeeklyStatBox(
-                            'Proteine Medie',
-                            '${stats.averageProteins.toInt()} g',
-                            (stats.averageProteins >= user.goalProteins) ? accentCyan : accentYellow,
-                          ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.hourglass_empty, color: Colors.white38, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Dati insufficienti — registra almeno 7 giorni per vedere le medie.',
+                                style: TextStyle(color: Colors.white38, fontSize: 12),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildWeeklyStatBox(
+                              'Calorie Medie',
+                              '${stats.averageCalories.toInt()} kcal',
+                              (stats.averageCalories <= user.goalCalories) ? accentCyan : accentPink,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildWeeklyStatBox(
+                              'Proteine Medie',
+                              '${stats.averageProteins.toInt()} g',
+                              (stats.averageProteins >= user.goalProteins) ? accentCyan : accentYellow,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(height: 40),
             ],
+
           ],
         ),
       ),
@@ -703,9 +866,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             '${itemCal.toInt()} kcal',
                             style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.white38, size: 18),
+                            icon: const Icon(Icons.edit, color: Color(0xFF00FFC2), size: 16),
+                            onPressed: () => _showEditQuantityDialog(context, appState, mealName, index, item),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.white38, size: 16),
                             onPressed: () => appState.removeMealItem(mealName, index),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),

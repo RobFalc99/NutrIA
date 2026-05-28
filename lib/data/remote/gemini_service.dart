@@ -7,7 +7,7 @@ class GeminiService {
   final String apiKey;
   final String modelName;
 
-  GeminiService({required this.apiKey, this.modelName = 'gemma-4-26b-a4b-it'});
+  GeminiService({required this.apiKey, this.modelName = 'gemini-2.0-flash-lite'});
 
   /// Analizza una descrizione testuale e restituisce una lista di MealItem.
   /// Usiamo un prompt strutturato tramite systemInstruction per far restituire al modello solo JSON.

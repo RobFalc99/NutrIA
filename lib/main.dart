@@ -30,18 +30,18 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AppState(isar)),
       ],
-      child: const KCALcolatoreApp(),
+      child: const KCaliApp(),
     ),
   );
 }
 
-class KCALcolatoreApp extends StatelessWidget {
-  const KCALcolatoreApp({super.key});
+class KCaliApp extends StatelessWidget {
+  const KCaliApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'KCALcolatore',
+      title: 'kCali',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
