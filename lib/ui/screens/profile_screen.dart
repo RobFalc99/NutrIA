@@ -188,6 +188,82 @@ class _ProfileFormState extends State<ProfileForm> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ── Streak Card ──────────────────────────────────────────────────
+            FutureBuilder<int>(
+              future: context.read<AppState>().getTrackingStreak(),
+              builder: (context, snapshot) {
+                final streak = snapshot.data ?? 0;
+                final hasStreak = streak > 0;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: hasStreak
+                          ? [const Color(0xFFFF6B00).withOpacity(0.18), const Color(0xFFFFD700).withOpacity(0.08)]
+                          : [Colors.white.withOpacity(0.03), Colors.white.withOpacity(0.01)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: hasStreak ? const Color(0xFFFF6B00).withOpacity(0.3) : Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Fuocherello animato/statico
+                      Text(
+                        hasStreak ? '🔥' : '🌱',
+                        style: const TextStyle(fontSize: 36),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              hasStreak ? '$streak ${streak == 1 ? 'giorno' : 'giorni'} di streak!' : 'Inizia il tuo streak oggi!',
+                              style: TextStyle(
+                                color: hasStreak ? const Color(0xFFFFD700) : Colors.white54,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              hasStreak
+                                  ? 'Stai tracciando i tuoi pasti ogni giorno 💪'
+                                  : 'Registra almeno un pasto per iniziare',
+                              style: const TextStyle(color: Colors.white38, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (hasStreak) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6B00).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFFF6B00).withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            '🔥$streak',
+                            style: const TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+
             // ── Modalità tracciamento ────────────────────────────────────────
             const _SectionTitle(title: 'Modalita\' di Tracciamento'),
             const SizedBox(height: 10),

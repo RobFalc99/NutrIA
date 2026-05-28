@@ -494,6 +494,32 @@ class AppState extends ChangeNotifier {
     return count >= 7;
   }
 
+  // Calcola la streak: giorni consecutivi con almeno 1 pasto tracciato (a partire da oggi)
+  Future<int> getTrackingStreak() async {
+    final allLogs = await isar.dailyLogEntitys.where().findAll();
+    final trackedDays = allLogs
+        .where((log) => log.meals.isNotEmpty)
+        .map((log) => _normalizeDate(log.date))
+        .toSet();
+
+    final today = _normalizeDate(DateTime.now());
+    int streak = 0;
+    DateTime check = today;
+    while (trackedDays.contains(check)) {
+      streak++;
+      check = check.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
+
+  // Restituisce il set di tutte le date con almeno 1 pasto tracciato (per calendario storico)
+  Future<Set<DateTime>> getTrackedDays() async {
+    final allLogs = await isar.dailyLogEntitys.where().findAll();
+    return allLogs
+        .where((log) => log.meals.isNotEmpty)
+        .map((log) => _normalizeDate(log.date))
+        .toSet();
+  }
 
   // Getter macro per il giorno corrente
   double get currentCalories {

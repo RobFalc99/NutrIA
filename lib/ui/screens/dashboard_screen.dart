@@ -186,6 +186,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _showDashboardFoodInfo(
+    BuildContext context,
+    AppState appState,
+    MealItemEntity item,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _DashboardFoodInfoSheet(appState: appState, item: item),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -359,6 +371,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
+            ),
+
+            // Mini Calendario Storico
+            _MiniHistoryCalendar(
+              appState: appState,
+              accentCyan: accentCyan,
+              accentPink: accentPink,
             ),
 
             // 80/20 Cheat Day Toggle (Elegante Glassmorphic Card)
@@ -861,24 +880,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             '${itemCal.toInt()} kcal',
-                            style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(width: 4),
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Color(0xFF00FFC2), size: 16),
-                            onPressed: () => _showEditQuantityDialog(context, appState, mealName, index, item),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                          const SizedBox(width: 2),
+                          // Tasto i — Info
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: IconButton(
+                              icon: const Icon(Icons.info_outline, color: Color(0xFF00FFC2), size: 14),
+                              onPressed: () => _showDashboardFoodInfo(context, appState, item),
+                              padding: EdgeInsets.zero,
+                            ),
                           ),
-                          const SizedBox(width: 4),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.white38, size: 16),
-                            onPressed: () => appState.removeMealItem(mealName, index),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                          // Tasto Modifica
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.white54, size: 14),
+                              onPressed: () => _showEditQuantityDialog(context, appState, mealName, index, item),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                          // Tasto Elimina
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.white30, size: 14),
+                              onPressed: () => appState.removeMealItem(mealName, index),
+                              padding: EdgeInsets.zero,
+                            ),
                           ),
                         ],
                       ),
@@ -1441,3 +1478,641 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
     );
   }
 }
+
+// ── Mini Calendario Storico ──────────────────────────────────────────────────
+class _MiniHistoryCalendar extends StatefulWidget {
+  final AppState appState;
+  final Color accentCyan;
+  final Color accentPink;
+  const _MiniHistoryCalendar({required this.appState, required this.accentCyan, required this.accentPink});
+
+  @override
+  State<_MiniHistoryCalendar> createState() => _MiniHistoryCalendarState();
+}
+
+class _MiniHistoryCalendarState extends State<_MiniHistoryCalendar> {
+  bool _expanded = false;
+  DateTime _viewMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  Set<DateTime> _trackedDays = {};
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrackedDays();
+  }
+
+  Future<void> _loadTrackedDays() async {
+    final days = await widget.appState.getTrackedDays();
+    if (mounted) {
+      setState(() {
+        _trackedDays = days;
+        _loaded = true;
+      });
+    }
+  }
+
+  void _prevMonth() => setState(() => _viewMonth = DateTime(_viewMonth.year, _viewMonth.month - 1));
+  void _nextMonth() => setState(() => _viewMonth = DateTime(_viewMonth.year, _viewMonth.month + 1));
+
+  @override
+  Widget build(BuildContext context) {
+    final cyan = widget.accentCyan;
+    final pink = widget.accentPink;
+    final months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+                    'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+    return GestureDetector(
+      onTap: () {
+        setState(() => _expanded = !_expanded);
+        if (_expanded) _loadTrackedDays();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _expanded ? cyan.withOpacity(0.15) : Colors.white.withOpacity(0.05)),
+        ),
+        child: Column(
+          children: [
+            // Header tap
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_month_rounded, color: cyan.withOpacity(0.7), size: 18),
+                  const SizedBox(width: 8),
+                  const Text('Storico', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const Spacer(),
+                  if (_loaded && _trackedDays.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: cyan.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${_trackedDays.length} giorni',
+                        style: TextStyle(color: cyan, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  Icon(_expanded ? Icons.expand_less : Icons.expand_more, color: Colors.white38, size: 18),
+                ],
+              ),
+            ),
+
+            // Calendario espandibile
+            if (_expanded) ...[
+              const Divider(color: Colors.white10, height: 1),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    // Navigazione mese
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.chevron_left, color: cyan, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: _prevMonth,
+                        ),
+                        Text(
+                          '${months[_viewMonth.month - 1]} ${_viewMonth.year}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.chevron_right, color: cyan, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: _nextMonth,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Intestazioni giorni settimana
+                    Row(
+                      children: ['L','M','M','G','V','S','D'].map((d) => Expanded(
+                        child: Center(
+                          child: Text(d, style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Griglia giorni
+                    _buildCalendarGrid(cyan, pink),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCalendarGrid(Color cyan, Color pink) {
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final firstDay = DateTime(_viewMonth.year, _viewMonth.month, 1);
+    // weekday: 1=Lun, 7=Dom → offset per iniziare da Lunedì
+    final startOffset = (firstDay.weekday - 1);
+    final daysInMonth = DateTime(_viewMonth.year, _viewMonth.month + 1, 0).day;
+    final totalCells = startOffset + daysInMonth;
+    final rows = (totalCells / 7).ceil();
+
+    return Column(
+      children: List.generate(rows, (row) {
+        return Row(
+          children: List.generate(7, (col) {
+            final cellIndex = row * 7 + col;
+            final dayNum = cellIndex - startOffset + 1;
+
+            if (dayNum < 1 || dayNum > daysInMonth) {
+              return const Expanded(child: SizedBox(height: 36));
+            }
+
+            final date = DateTime(_viewMonth.year, _viewMonth.month, dayNum);
+            final isToday = date == today;
+            final isSelected = date == DateTime(widget.appState.selectedDate.year, widget.appState.selectedDate.month, widget.appState.selectedDate.day);
+            final isTracked = _trackedDays.contains(date);
+            final isFuture = date.isAfter(today);
+
+            Color? bgColor;
+            Color textColor = Colors.white54;
+            if (isSelected) {
+              bgColor = cyan;
+              textColor = Colors.black;
+            } else if (isToday) {
+              bgColor = cyan.withOpacity(0.2);
+              textColor = cyan;
+            } else if (isTracked) {
+              bgColor = Colors.white.withOpacity(0.06);
+              textColor = Colors.white;
+            } else if (isFuture) {
+              textColor = Colors.white24;
+            }
+
+            return Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  widget.appState.setSelectedDate(date);
+                },
+                child: Container(
+                  height: 34,
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        '$dayNum',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 12,
+                          fontWeight: (isToday || isSelected || isTracked) ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      // Dot verde sotto il numero per giorni tracciati (non selected)
+                      if (isTracked && !isSelected)
+                        Positioned(
+                          bottom: 3,
+                          child: Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: cyan,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      }),
+    );
+  }
+}
+
+// ── Dashboard Food Info Sheet ─────────────
+class _DashboardFoodInfoSheet extends StatelessWidget {
+  final AppState appState;
+  final MealItemEntity item;
+
+  const _DashboardFoodInfoSheet({
+    required this.appState,
+    required this.item,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double grams = item.amountGrams;
+    final double cal = (item.caloriesPer100g * grams) / 100;
+    final double prot = (item.proteinsPer100g * grams) / 100;
+    final double carbs = (item.carbsPer100g * grams) / 100;
+    final double fats = (item.fatsPer100g * grams) / 100;
+    final double fibers = (item.fibersPer100g * grams) / 100;
+
+    const cyan = Color(0xFF00FFC2);
+    const pink = Color(0xFFFF007F);
+    const yellow = Color(0xFFFFD700);
+    const green = Color(0xFF00E676);
+
+    // Calcola tot per proporzioni
+    final double totalMacroKcal = (prot * 4) + (carbs * 4) + (fats * 9);
+    final double protPct = totalMacroKcal > 0 ? (prot * 4 / totalMacroKcal) : 0;
+    final double carbPct = totalMacroKcal > 0 ? (carbs * 4 / totalMacroKcal) : 0;
+    final double fatPct = totalMacroKcal > 0 ? (fats * 9 / totalMacroKcal) : 0;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF16161D),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SingleChildScrollView(
+          controller: controller,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Titolo
+                    Text(
+                      item.foodName ?? 'Alimento',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Calorie grande
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            cyan.withOpacity(0.15),
+                            cyan.withOpacity(0.03),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: cyan.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Calorie',
+                                style: TextStyle(
+                                  color: cyan.withOpacity(0.7),
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '${cal.toStringAsFixed(1)} kcal',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 26,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'per ${grams.toInt()}g inseriti',
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Macro Cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMacroCard(
+                            'Proteine',
+                            prot,
+                            'g',
+                            pink,
+                            protPct,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMacroCard(
+                            'Carboidrati',
+                            carbs,
+                            'g',
+                            yellow,
+                            carbPct,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMacroCard(
+                            'Grassi',
+                            fats,
+                            'g',
+                            green,
+                            fatPct,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    _buildFiberCard(fibers, Colors.cyan),
+
+                    const SizedBox(height: 16),
+
+                    // Barra distribuzione macros
+                    if (totalMacroKcal > 0) ...[
+                      const Text(
+                        'Distribuzione macros (% kcal)',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          children: [
+                            Flexible(
+                              flex: (protPct * 100).toInt().clamp(1, 100),
+                              child: Container(height: 12, color: pink),
+                            ),
+                            Flexible(
+                              flex: (carbPct * 100).toInt().clamp(1, 100),
+                              child: Container(height: 12, color: yellow),
+                            ),
+                            Flexible(
+                              flex: (fatPct * 100).toInt().clamp(1, 100),
+                              child: Container(height: 12, color: green),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'P ${(protPct * 100).toInt()}%',
+                            style: const TextStyle(
+                              color: pink,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'C ${(carbPct * 100).toInt()}%',
+                            style: const TextStyle(
+                              color: yellow,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'G ${(fatPct * 100).toInt()}%',
+                            style: const TextStyle(
+                              color: green,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // Riferimento per 100g
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.02),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildRef100g(
+                            'Kcal',
+                            item.caloriesPer100g.toStringAsFixed(0),
+                            cyan,
+                          ),
+                          _buildRef100g(
+                            'Prot',
+                            item.proteinsPer100g.toStringAsFixed(1),
+                            pink,
+                          ),
+                          _buildRef100g(
+                            'Carb',
+                            item.carbsPer100g.toStringAsFixed(1),
+                            yellow,
+                          ),
+                          _buildRef100g(
+                            'Gras',
+                            item.fatsPer100g.toStringAsFixed(1),
+                            green,
+                          ),
+                          _buildRef100g(
+                            'Fibre',
+                            item.fibersPer100g.toStringAsFixed(1),
+                            Colors.cyan,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Center(
+                      child: Text(
+                        'Valori di riferimento per 100g',
+                        style: TextStyle(color: Colors.white24, fontSize: 10),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Bottone "Salva tra i preferiti"
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final food = Food(
+                          id: item.foodId ??
+                              DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: item.foodName ?? 'Alimento',
+                          caloriesPer100g: item.caloriesPer100g,
+                          proteinsPer100g: item.proteinsPer100g,
+                          carbsPer100g: item.carbsPer100g,
+                          fatsPer100g: item.fatsPer100g,
+                          fibersPer100g: item.fibersPer100g,
+                          isCustom: true,
+                          isOnline: true,
+                        );
+                        await appState.saveCustomFood(food);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${item.foodName} salvato tra i preferiti!',
+                              ),
+                              backgroundColor: const Color(0xFF16161D),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.favorite, color: Color(0xFF0F0F13)),
+                      label: const Text(
+                        'Salva nei preferiti',
+                        style: TextStyle(
+                          color: Color(0xFF0F0F13),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cyan,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMacroCard(
+    String label,
+    double value,
+    String unit,
+    Color color,
+    double pct,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(color: color.withOpacity(0.7), fontSize: 11)),
+          const SizedBox(height: 4),
+          Text(
+            '${value.toStringAsFixed(1)}$unit',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: pct.clamp(0.0, 1.0),
+            backgroundColor: Colors.white.withOpacity(0.06),
+            valueColor: AlwaysStoppedAnimation(color),
+            minHeight: 3,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFiberCard(double value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.12)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Fibre', style: TextStyle(color: color.withOpacity(0.7), fontSize: 13)),
+          Text(
+            '${value.toStringAsFixed(1)} g',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRef100g(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+      ],
+    );
+  }
+}
+
