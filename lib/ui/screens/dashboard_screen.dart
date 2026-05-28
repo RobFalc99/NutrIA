@@ -226,6 +226,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final double calGoal = user.goalCalories;
     final double currentCal = appState.currentCalories;
     final double calProgress = (calGoal > 0) ? (currentCal / calGoal).clamp(0.0, 1.0) : 0.0;
+    final double remainingCalories = calGoal - currentCal;
 
     final double proteinGoal = user.goalProteins;
     final double currentProt = appState.currentProteins;
@@ -543,6 +544,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 24),
+            _buildQuickWidgetsSection(context, appState, remainingCalories),
+            const SizedBox(height: 24),
 
             // Sezione Diaristica Pasti
             Row(
@@ -801,6 +804,277 @@ class _DashboardScreenState extends State<DashboardScreen> {
             backgroundColor: Colors.white.withOpacity(0.05),
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
+        ),
+      ],
+    );
+  }
+
+  void _showQuickCalorieDialog(BuildContext context, AppState appState) {
+    double calories = 250.0;
+    String selectedMeal = 'Colazione';
+    final textController = TextEditingController(text: '250');
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16161D),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text('Log Calorie Rapido ⚡', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Seleziona Pasto:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedMeal,
+                        dropdownColor: const Color(0xFF16161D),
+                        isExpanded: true,
+                        style: const TextStyle(color: Color(0xFF00FFC2), fontWeight: FontWeight.bold),
+                        items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini'].map((meal) {
+                          return DropdownMenuItem<String>(value: meal, child: Text(meal));
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() {
+                              selectedMeal = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: textController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      labelText: 'Calorie (kcal)',
+                      labelStyle: const TextStyle(color: Colors.white60),
+                      suffixText: 'kcal',
+                      suffixStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.04),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        calories = double.tryParse(val) ?? 0.0;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [100, 250, 500, 1000].map((c) {
+                      return ChoiceChip(
+                        label: Text('$c kcal'),
+                        selected: calories == c,
+                        onSelected: (selected) {
+                          if (selected) {
+                            textController.text = c.toString();
+                            setDialogState(() { calories = c.toDouble(); });
+                          }
+                        },
+                        selectedColor: const Color(0xFFFF007F).withOpacity(0.3),
+                        backgroundColor: Colors.white.withOpacity(0.03),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Annulla', style: TextStyle(color: Colors.white54)),
+                ),
+                ElevatedButton(
+                  onPressed: calories <= 0 ? null : () {
+                    final food = Food(
+                      id: 'quick_log_${DateTime.now().millisecondsSinceEpoch}',
+                      name: 'Log Rapido (${calories.toInt()} kcal)',
+                      caloriesPer100g: calories,
+                      proteinsPer100g: 0.0,
+                      carbsPer100g: 0.0,
+                      fatsPer100g: 0.0,
+                    );
+                    appState.addMealItem(selectedMeal, food, 100.0);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Aggiunte ${calories.toInt()} kcal a $selectedMeal!'), behavior: SnackBarBehavior.floating),
+                    );
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF007F),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Inserisci', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickWidgetsSection(BuildContext context, AppState appState, double remainingCalories) {
+    const accentCyan = Color(0xFF00FFC2);
+    const accentPink = Color(0xFFFF007F);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Widget Rapidi',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white70),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            // 1. Widget Calorie Rimanenti
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                height: 130,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.04)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.bolt, color: accentCyan, size: 18),
+                        SizedBox(width: 6),
+                        Text('Rimanenti', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      ],
+                    ),
+                    Text(
+                      '${remainingCalories.toInt()} kcal',
+                      style: TextStyle(
+                        color: remainingCalories >= 0 ? accentCyan : accentPink,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 32,
+                      child: ElevatedButton(
+                        onPressed: () => _showQuickCalorieDialog(context, appState),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentPink,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: const Text(
+                          '+ Calorie',
+                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // 2. Widget Idratazione Rapida
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                height: 130,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.04)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.local_drink, color: Colors.blueAccent, size: 16),
+                        const SizedBox(width: 6),
+                        const Text('Idratazione', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => appState.removeWaterMl(250),
+                          child: const Icon(Icons.remove_circle_outline, color: Colors.white38, size: 14),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '${appState.currentDayLog?.waterMl ?? 0} ml',
+                      style: const TextStyle(
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 32,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                appState.addWaterMl(250);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('+250 ml di acqua loggati!'), duration: Duration(seconds: 1), behavior: SnackBarBehavior.floating),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: Colors.blueAccent.withOpacity(0.4)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text('+250', style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: SizedBox(
+                            height: 32,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                appState.addWaterMl(500);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('+500 ml di acqua loggati!'), duration: Duration(seconds: 1), behavior: SnackBarBehavior.floating),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blueAccent,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text('+500', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

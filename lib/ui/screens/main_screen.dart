@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:quick_actions/quick_actions.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'alimenti_screen.dart';
 
-/// Schermata principale con BottomNavigationBar.
-/// Dashboard, Alimenti e Impostazioni sono sempre montate nell'albero dei widget
-/// (usando IndexedStack) — nessuna navigazione, nessun problema di context.
+/// Schermata principale con BottomNavigationBar ed integrazione QuickActions (Android/iOS).
+/// Dashboard, Alimenti e Impostazioni sono sempre montate nell'albero dei widget.
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -18,11 +18,15 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   bool _isAddMenuOpen = false;
+  
+  // Istanza QuickActions per shortcut su icona app
+  final QuickActions _quickActions = const QuickActions();
 
   @override
   void initState() {
     super.initState();
     _requestInitialPermissions();
+    _setupQuickActions();
   }
 
   Future<void> _requestInitialPermissions() async {
@@ -36,6 +40,70 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) {
       debugPrint("Errore richiesta permessi iniziali: $e");
     }
+  }
+
+  void _setupQuickActions() {
+    // Gestione dei tap sui collegamenti rapidi dell'icona
+    _quickActions.initialize((String type) {
+      if (type == 'action_manual') {
+        final hour = DateTime.now().hour;
+        String defaultMeal = 'Colazione';
+        if (hour >= 11 && hour < 15) {
+          defaultMeal = 'Pranzo';
+        } else if (hour >= 15 && hour < 19) {
+          defaultMeal = 'Spuntini';
+        } else if (hour >= 19) {
+          defaultMeal = 'Cena';
+        }
+        Navigator.pushNamed(context, '/addMeal', arguments: defaultMeal);
+      } else if (type == 'action_alimenti') {
+        setState(() {
+          _currentIndex = 1; // Sposta alla tab Alimenti
+          _isAddMenuOpen = false;
+        });
+      } else if (type == 'action_ia') {
+        final hour = DateTime.now().hour;
+        String defaultMeal = 'Colazione';
+        if (hour >= 11 && hour < 15) {
+          defaultMeal = 'Pranzo';
+        } else if (hour >= 15 && hour < 19) {
+          defaultMeal = 'Spuntini';
+        } else if (hour >= 19) {
+          defaultMeal = 'Cena';
+        }
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => WholeMealAiDialog(defaultMeal: defaultMeal),
+        );
+      } else if (type == 'action_info') {
+        _showInfoGuideDialog(context);
+      }
+    });
+
+    // Definizione dei collegamenti rapidi registrati su Android/iOS
+    _quickActions.setShortcutItems(const <ShortcutItem>[
+      ShortcutItem(
+        type: 'action_manual',
+        localizedTitle: 'Inserimento Manuale',
+        icon: 'ic_manual', // Icona nativa di fallback
+      ),
+      ShortcutItem(
+        type: 'action_alimenti',
+        localizedTitle: 'Gestione Alimenti',
+        icon: 'ic_alimenti',
+      ),
+      ShortcutItem(
+        type: 'action_ia',
+        localizedTitle: 'Analisi Pasto IA',
+        icon: 'ic_ia',
+      ),
+      ShortcutItem(
+        type: 'action_info',
+        localizedTitle: 'Informazioni kCali',
+        icon: 'ic_info',
+      ),
+    ]);
   }
 
   static const _accentCyan = Color(0xFF00FFC2);
@@ -56,6 +124,98 @@ class _MainScreenState extends State<MainScreen> {
       _currentIndex = index;
       _isAddMenuOpen = false; // Chiude il menu se si cambia tab
     });
+  }
+
+  void _showInfoGuideDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _bgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: _accentCyan, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Guida Funzionalità kCali 💡',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildGuideSection(
+                  title: '1. Inserimento Pasti con IA 🪄',
+                  description:
+                      'Fotografa il tuo piatto o descrivilo testualmente (es. "pasta corta con salsa, un uovo sodo"). L\'IA Gemini scompone gli alimenti stimando quantità e macro riferiti a 100g.',
+                  color: _accentCyan,
+                ),
+                const SizedBox(height: 14),
+                _buildGuideSection(
+                  title: '2. Scannerizzazione Barcode Avanzata 📷',
+                  description:
+                      'Inquadra il codice a barre per scansionarlo. Se il rilevamento automatico fallisce, scatta una foto al codice: Gemini Vision ne estrarrà i numeri per interrogare OpenFoodFacts.',
+                  color: _accentPink,
+                ),
+                const SizedBox(height: 14),
+                _buildGuideSection(
+                  title: '3. Scannerizzazione Tabella Nutrizionale 🔍',
+                  description:
+                      'Fai una foto alla tabella dei valori nutrizionali sul retro di qualsiasi confezione. L\'IA estrarrà automaticamente tutti i macronutrienti per 100g precompilando la scheda!',
+                  color: Colors.orangeAccent,
+                ),
+                const SizedBox(height: 14),
+                _buildGuideSection(
+                  title: '4. Sezione Alimenti & Storico 📊',
+                  description:
+                      'Gli alimenti aggiunti sono memorizzati nella scheda "I Miei Alimenti" per un inserimento rapido. Configura la tua API Key Gemini dal tuo Profilo per abilitare le elaborazioni visive.',
+                  color: Colors.blueAccent,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentCyan,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Ho capito', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildGuideSection({required String title, required String description, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.4),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -109,7 +269,7 @@ class _MainScreenState extends State<MainScreen> {
             color: Colors.black.withOpacity(0.5),
             blurRadius: 15,
             spreadRadius: 2,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
