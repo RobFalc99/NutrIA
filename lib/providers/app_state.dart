@@ -574,10 +574,23 @@ class AppState extends ChangeNotifier {
               : currentDayLog!.waterMl)
           : 0;
 
+      final proteins = currentProteins;
+      final goalProteins = currentUser?.goalProteins ?? 150.0;
+      final carbs = currentCarbs;
+      final goalCarbs = currentUser?.goalCarbs ?? 200.0;
+      final fats = currentFats;
+      final goalFats = currentUser?.goalFats ?? 60.0;
+
       const MethodChannel('com.example.kcal/widget').invokeMethod('updateWidget', {
         'calories': calories.round(),
         'goal': goal.round(),
         'water': water,
+        'proteins': proteins.round(),
+        'goalProteins': goalProteins.round(),
+        'carbs': carbs.round(),
+        'goalCarbs': goalCarbs.round(),
+        'fats': fats.round(),
+        'goalFats': goalFats.round(),
       }).catchError((e) {
         // Ignora l'errore se la piattaforma non è ancora pronta o non è supportata
       });

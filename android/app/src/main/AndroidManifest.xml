@@ -44,6 +44,32 @@
                 android:resource="@xml/kcal_widget_info" />
         </receiver>
 
+        <!-- Native Calorie Widget Receiver -->
+        <receiver
+            android:name=".KCaliCalorieWidgetProvider"
+            android:exported="true"
+            android:label="kCali - Calorie">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kcal_calorie_widget_info" />
+        </receiver>
+
+        <!-- Native Water Widget Receiver -->
+        <receiver
+            android:name=".KCaliWaterWidgetProvider"
+            android:exported="true"
+            android:label="kCali - Acqua">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kcal_water_widget_info" />
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

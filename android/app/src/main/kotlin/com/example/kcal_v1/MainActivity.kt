@@ -37,8 +37,20 @@ class MainActivity : FlutterActivity() {
                     val calories = call.argument<Int>("calories") ?: 0
                     val goal = call.argument<Int>("goal") ?: 2000
                     val water = call.argument<Int>("water") ?: 0
+                    val proteins = call.argument<Int>("proteins") ?: 0
+                    val goalProteins = call.argument<Int>("goalProteins") ?: 150
+                    val carbs = call.argument<Int>("carbs") ?: 0
+                    val goalCarbs = call.argument<Int>("goalCarbs") ?: 200
+                    val fats = call.argument<Int>("fats") ?: 0
+                    val goalFats = call.argument<Int>("goalFats") ?: 60
                     
-                    KCaliWidgetProvider.updateAllWidgets(applicationContext, calories, goal, water)
+                    KCaliWidgetProvider.updateAllWidgets(
+                        applicationContext, calories, goal, water,
+                        proteins, goalProteins, carbs, goalCarbs, fats, goalFats
+                    )
+                    KCaliCalorieWidgetProvider.updateAllWidgets(applicationContext, calories, goal)
+                    KCaliWaterWidgetProvider.updateAllWidgets(applicationContext, water)
+                    
                     result.success(null)
                 }
                 "getWidgetAction" -> {

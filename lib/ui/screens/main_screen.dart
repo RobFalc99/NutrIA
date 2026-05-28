@@ -149,6 +149,16 @@ class _MainScreenState extends State<MainScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
+    } else if (action == 'add_water_500') {
+      appState.addWaterMl(500);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Acqua registrata con successo! 💧 +500ml'),
+          backgroundColor: const Color(0xFF00FFC2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
     } else if (action == 'add_manual') {
       final hour = DateTime.now().hour;
       String defaultMeal = 'Colazione';

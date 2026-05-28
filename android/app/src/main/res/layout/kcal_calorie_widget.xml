@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="kCali Calorie"
+        android:textColor="#FF00FFC2"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Huge Calorie Stats -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="bottom"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_cal_consumed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="#FFFFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_cal_goal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" / 2000 kcal"
+            android:textColor="#88FFFFFF"
+            android:textSize="12sp"
+            android:layout_marginStart="2dp"
+            android:layout_marginBottom="2dp" />
+    </LinearLayout>
+
+    <!-- Calorie Progress Bar -->
+    <ProgressBar
+        android:id="@+id/widget_cal_progress_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginBottom="8dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_progress" />
+
+    <!-- Remaining Calories Display -->
+    <TextView
+        android:id="@+id/widget_cal_remaining"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Rimanenti: 2000 kcal"
+        android:textColor="#FF00FFC2"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Tap action button at the bottom -->
+    <Button
+        android:id="@+id/btn_cal_action"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="@drawable/widget_btn_bg"
+        android:text="Nuovo Pasto ✍️"
+        android:textColor="#FFFF007F"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+</LinearLayout>

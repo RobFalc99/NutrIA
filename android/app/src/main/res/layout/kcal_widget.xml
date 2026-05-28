@@ -4,21 +4,21 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="12dp">
 
-    <!-- Header -->
+    <!-- Header: Title and Water Tracker -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="6dp">
 
         <TextView
             android:id="@+id/widget_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="kCali - Oggi"
+            android:text="kCali Diario"
             android:textColor="#FF00FFC2"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
@@ -28,10 +28,11 @@
             android:layout_alignParentEnd="true"
             android:text="💧 0 ml"
             android:textColor="#FFFFFFFF"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:textStyle="bold" />
     </RelativeLayout>
 
-    <!-- Calorie Row -->
+    <!-- Calories Section -->
     <TextView
         android:id="@+id/widget_calories_text"
         android:layout_width="match_parent"
@@ -39,7 +40,8 @@
         android:layout_marginBottom="4dp"
         android:text="Calorie: 0 / 2000 kcal"
         android:textColor="#FFFFFFFF"
-        android:textSize="13sp" />
+        android:textSize="13sp"
+        android:textStyle="bold" />
 
     <!-- Calorie Progress Bar -->
     <ProgressBar
@@ -47,10 +49,107 @@
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="6dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="10dp"
         android:max="100"
         android:progress="0"
         android:progressDrawable="@drawable/widget_progress" />
+
+    <!-- Macronutrients Columns Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="10dp">
+
+        <!-- Column 1: Proteins -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="6dp">
+
+            <TextView
+                android:id="@+id/widget_proteins_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Pro: 0 / 150g"
+                android:textColor="#FFCCFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:ellipsize="end"
+                android:singleLine="true" />
+
+            <ProgressBar
+                android:id="@+id/widget_proteins_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/widget_progress_proteins" />
+        </LinearLayout>
+
+        <!-- Column 2: Carbs -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="6dp">
+
+            <TextView
+                android:id="@+id/widget_carbs_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Carb: 0 / 200g"
+                android:textColor="#FFFFF2CC"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:ellipsize="end"
+                android:singleLine="true" />
+
+            <ProgressBar
+                android:id="@+id/widget_carbs_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/widget_progress_carbs" />
+        </LinearLayout>
+
+        <!-- Column 3: Fats -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_fats_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fat: 0 / 60g"
+                android:textColor="#FFFFE1F2"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:ellipsize="end"
+                android:singleLine="true" />
+
+            <ProgressBar
+                android:id="@+id/widget_fats_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/widget_progress_fats" />
+        </LinearLayout>
+    </LinearLayout>
 
     <!-- Action Buttons Row -->
     <LinearLayout
@@ -67,7 +166,7 @@
             android:background="@drawable/widget_btn_bg"
             android:text="+250ml 💧"
             android:textColor="#FF00FFC2"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:layout_marginEnd="4dp" />
 
@@ -80,7 +179,7 @@
             android:background="@drawable/widget_btn_bg"
             android:text="Manuale ✍️"
             android:textColor="#FFFF007F"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:layout_marginEnd="4dp" />
 
@@ -93,7 +192,7 @@
             android:background="@drawable/widget_btn_bg"
             android:text="IA Pasto 🪄"
             android:textColor="#FF00FFC2"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>
