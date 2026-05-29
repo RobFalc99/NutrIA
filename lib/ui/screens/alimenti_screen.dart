@@ -33,7 +33,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   List<Food> _searchResults = [];
   bool _isSearching = false;
 
-  // Tab AI Singolo
+  // Tab AI Singolo / Popup
   final _singleFoodAiController = TextEditingController();
   final _singleFoodGramsController = TextEditingController(text: '100');
   Food? _aiSingleFoodResult;
@@ -56,7 +56,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _initSpeech();
   }
 
@@ -64,7 +64,14 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     try {
       _speechEnabled = await _speechToText.initialize(
         onError: (val) => debugPrint('Errore Speech: $val'),
-        onStatus: (val) => debugPrint('Stato Speech: $val'),
+        onStatus: (val) {
+          debugPrint('Stato Speech: $val');
+          if (val == 'notListening' || val == 'done') {
+            setState(() {
+              _isListening = false;
+            });
+          }
+        },
       );
       if (mounted) setState(() {});
     } catch (e) {
@@ -96,16 +103,16 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
           if (words.isEmpty) return;
 
           setState(() {
-            // Se le nuove parole riconosciute non iniziano con quelle registrate in precedenza,
-            // significa che l'engine ha riavviato una frase a causa della pausa. Committiamo l'accumulo precedente!
             if (_dictationLastWords.isNotEmpty && !words.toLowerCase().startsWith(_dictationLastWords.toLowerCase())) {
               _dictationInitialText = _dictationInitialText.isEmpty
                   ? _dictationLastWords
                   : "$_dictationInitialText $_dictationLastWords";
             }
-
             _dictationLastWords = words;
-            _singleFoodAiController.text = _dictationInitialText.isEmpty ? words : "$_dictationInitialText $words";
+
+            _singleFoodAiController.text = _dictationInitialText.isEmpty
+                ? words
+                : "$_dictationInitialText $words";
 
             if (result.finalResult) {
               _dictationInitialText = _singleFoodAiController.text.trim();
@@ -114,7 +121,6 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
           });
         },
         localeId: 'it_IT',
-        // Il microfono non si deve staccare in automatico
         listenFor: const Duration(minutes: 10),
         pauseFor: const Duration(seconds: 60),
       );
@@ -511,31 +517,28 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
           unselectedLabelColor: Colors.white38,
           indicatorColor: accentCyan,
           tabs: const [
-            Tab(icon: Icon(Icons.search), text: 'Cerca'),
-            Tab(icon: Icon(Icons.psychology), text: 'AI Singolo'),
-            Tab(icon: Icon(Icons.folder_shared), text: 'I Miei Alimenti'),
+            Tab(icon: Icon(Icons.bookmark), text: 'Salvati'),
+            Tab(icon: Icon(Icons.language), text: 'Web'),
+            Tab(icon: Icon(Icons.add_circle), text: 'Nuovo'),
+            Tab(icon: Icon(Icons.history), text: 'Cronologia'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildSearchTab(),
-          _buildAiTab(),
           _buildMyFoodsTab(),
+          _buildSearchTab(),
+          _buildNewFoodTab(),
+          _buildHistoryTab(),
         ],
       ),
     );
   }
 
-  // --- TAB 1: RICERCA SINGOLO ALIMENTO ---
+  // --- TAB 2: RICERCA WEB (OPENFOODFACTS) ---
   Widget _buildSearchTab() {
-    final appState = context.watch<AppState>();
     final query = _searchController.text.trim().toLowerCase();
-
-    final List<Food> localFiltered = query.isEmpty
-        ? appState.customFoods
-        : appState.customFoods.where((food) => food.name.toLowerCase().contains(query)).toList();
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -551,7 +554,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                   onChanged: (val) => setState(() {}),
                   onSubmitted: (_) => _performSearch(),
                   decoration: InputDecoration(
-                    hintText: 'Cerca alimento...',
+                    hintText: 'Cerca alimento su internet...',
                     hintStyle: const TextStyle(color: Colors.white30),
                     prefixIcon: const Icon(Icons.search, color: Colors.white54),
                     filled: true,
@@ -579,25 +582,19 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                 : ListView(
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      if (localFiltered.isNotEmpty) ...[
-                        _sectionHeader(Icons.cloud_done, 'Cibi Personali', accentCyan),
-                        const SizedBox(height: 8),
-                        ...localFiltered.map((food) => _buildFoodListTile(food, accentCyan)),
-                        const SizedBox(height: 20),
-                      ],
                       if (_searchResults.isNotEmpty) ...[
-                        _sectionHeader(Icons.language, 'Risultati OpenFoodFacts', accentPink),
+                        _sectionHeader(Icons.language, 'Risultati Web / OpenFoodFacts', accentPink),
                         const SizedBox(height: 8),
                         ..._searchResults.map((food) => _buildFoodListTile(food, accentPink)),
-                      ] else if (localFiltered.isEmpty) ...[
+                      ] else ...[
                         const SizedBox(height: 80),
                         const Center(
                           child: Column(
                             children: [
-                              Icon(Icons.search_off, size: 48, color: Colors.white24),
+                              Icon(Icons.language, size: 48, color: Colors.white24),
                               SizedBox(height: 10),
                               Text(
-                                'Cerca per nome o marca.\nPremi Enter o il tasto "Cerca 🔍" per cercare su internet.',
+                                'Digita il nome di un alimento o marca.\nPremi Enter o il tasto "Cerca 🔍" per cercare su internet.',
                                 style: TextStyle(color: Colors.white30, fontSize: 13),
                                 textAlign: TextAlign.center,
                               ),
@@ -613,193 +610,473 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     );
   }
 
-  // --- TAB 2: INSERIMENTO CON PROMPT AI ---
-  Widget _buildAiTab() {
-    final appState = context.watch<AppState>();
-    final hasKey = appState.currentUser?.geminiApiKey != null;
-
-    if (!hasKey) {
-      return Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.psychology_alt, size: 72, color: Colors.white24),
-            const SizedBox(height: 16),
-            const Text('Assistente AI Disattivato', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            const Text('Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.', style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/profile'),
-              style: ElevatedButton.styleFrom(backgroundColor: accentPink, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              icon: const Icon(Icons.settings, color: Colors.white),
-              label: const Text('Vai alle Impostazioni', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      );
-    }
-
+  // --- TAB 3: NUOVO ACQUISIZIONE E STIMA ---
+  Widget _buildNewFoodTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const Icon(Icons.add_circle_outline_rounded, size: 64, color: accentCyan),
+          const SizedBox(height: 16),
           const Text(
-            'Descrivi l\'alimento singolo da inserire:',
-            style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold),
+            'Acquisisci Nuovo Alimento',
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           const Text(
-            'L\'IA analizzerà il testo, identificherà l\'alimento e stimerà i suoi valori nutrizionali riferiti a 100g.',
-            style: TextStyle(color: Colors.white38, fontSize: 11),
+            'Scegli il metodo che preferisci per estrarre o stimare i valori nutrizionali del tuo alimento.',
+            style: TextStyle(color: Colors.white54, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+
+          // 1. Tabella Nutrizionale Card
+          _buildNewFoodActionCard(
+            title: 'Tabella Nutrizionale 📷',
+            description: 'Scatta una foto alla tabella nutrizionale sul retro della confezione per estrarre i valori con l\'IA.',
+            color: accentPink,
+            icon: Icons.camera_alt_outlined,
+            onTap: _scanMacroLabelWithAi,
           ),
           const SizedBox(height: 16),
 
-          TextFormField(
-            controller: _singleFoodAiController,
-            maxLines: 3,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Es. "una mela rossa media", "120g di petto di pollo cotto", "due cucchiai di olio d\'oliva"...',
-              hintStyle: const TextStyle(color: Colors.white24, fontSize: 12),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.03),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isListening ? Icons.mic : Icons.mic_none,
-                  color: _isListening ? const Color(0xFFFF007F) : const Color(0xFF00FFC2),
-                ),
-                onPressed: () {
-                  if (_isListening) {
-                    _stopListening();
-                  } else {
-                    _startListening();
-                  }
-                },
-                tooltip: 'Dettatura vocale 🎙️',
-              ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: accentCyan, width: 1.5),
-              ),
-            ),
+          // 2. Barcode Card
+          _buildNewFoodActionCard(
+            title: 'Codice a Barre 📷',
+            description: 'Inquadra il barcode del prodotto con la fotocamera per cercarlo istantaneamente nel database.',
+            color: accentCyan,
+            icon: Icons.qr_code_scanner_rounded,
+            onTap: _startBarcodeScan,
           ),
           const SizedBox(height: 16),
 
-          ElevatedButton.icon(
-            onPressed: _isSingleFoodAiLoading ? null : _analyzeSingleFoodWithAi,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accentCyan,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            icon: _isSingleFoodAiLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F0F13)))
-                : const Icon(Icons.auto_awesome, color: Color(0xFF0F0F13)),
-            label: Text(
-              _isSingleFoodAiLoading ? 'Identificazione alimento...' : 'Estrai Alimento Singolo 🪄',
-              style: const TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 14),
-            ),
+          // 3. IA Card
+          _buildNewFoodActionCard(
+            title: 'Stima con IA 🪄',
+            description: 'Descrivi a voce o per testo l\'alimento per calcolare la stima dei valori con Gemini.',
+            color: Colors.purpleAccent,
+            icon: Icons.psychology_outlined,
+            onTap: _showSingleFoodAiPopup,
           ),
+        ],
+      ),
+    );
+  }
 
-          const SizedBox(height: 24),
-
-          if (_aiSingleFoodResult != null) ...[
+  Widget _buildNewFoodActionCard({
+    required String title,
+    required String description,
+    required Color color,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.02),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: accentCyan.withOpacity(0.15)),
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
               ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _aiSingleFoodResult!.name,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            if (_aiSingleFoodResult!.brand != null && _aiSingleFoodResult!.brand!.isNotEmpty)
-                              Text(
-                                _aiSingleFoodResult!.brand!,
-                                style: const TextStyle(color: Colors.white54, fontSize: 12),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: accentCyan.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${_aiSingleFoodResult!.caloriesPer100g.toInt()} kcal/100g',
-                          style: const TextStyle(color: accentCyan, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    title,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                   ),
-                  const SizedBox(height: 16),
-
-                  const Text('Valori per 100g stimati:', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                  const SizedBox(height: 8),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildMiniMacro('Prot', '${_aiSingleFoodResult!.proteinsPer100g.toStringAsFixed(1)}g', accentPink),
-                      _buildMiniMacro('Carb', '${_aiSingleFoodResult!.carbsPer100g.toStringAsFixed(1)}g', const Color(0xFFFFD700)),
-                      _buildMiniMacro('Gras', '${_aiSingleFoodResult!.fatsPer100g.toStringAsFixed(1)}g', const Color(0xFF00E676)),
-                      _buildMiniMacro('Fibr', '${_aiSingleFoodResult!.fibersPer100g.toStringAsFixed(1)}g', Colors.cyan),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  const Divider(color: Colors.white10),
-                  const SizedBox(height: 12),
-
-                  // Tasto per aggiungerlo direttamente
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddQuantityDialog(_aiSingleFoodResult!),
-                    icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                    label: const Text('Usa questo alimento', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentPink,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
                   ),
                 ],
               ),
             ),
-          ] else if (_singleFoodAiError != null) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: accentPink.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: accentPink.withOpacity(0.2)),
-              ),
-              child: Text(
-                _singleFoodAiError!,
-                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-            ),
+            const Icon(Icons.chevron_right, color: Colors.white30, size: 20),
           ],
-        ],
+        ),
       ),
+    );
+  }
+
+  // --- POPUP DIALOG: STIMA IA ALIMENTO ---
+  void _showSingleFoodAiPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final appState = context.watch<AppState>();
+            final hasKey = appState.currentUser?.geminiApiKey != null;
+
+            return Dialog(
+              backgroundColor: bgCard,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.psychology, color: accentCyan, size: 22),
+                              SizedBox(width: 8),
+                              Text(
+                                'Stima con IA 🪄',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white54, size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (!hasKey) ...[
+                        const Icon(Icons.psychology_alt, size: 48, color: Colors.white24),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Assistente AI Disattivato',
+                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.',
+                          style: TextStyle(color: Colors.white54, fontSize: 11),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/profile');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accentPink,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.settings, color: Colors.white, size: 16),
+                          label: const Text('Vai al Profilo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ] else ...[
+                        const Text(
+                          'Descrivi l\'alimento singolo da inserire:',
+                          style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'L\'IA analizzerà il testo, identificherà l\'alimento e stimerà i suoi valori nutrizionali riferiti a 100g.',
+                          style: TextStyle(color: Colors.white38, fontSize: 10),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _singleFoodAiController,
+                          maxLines: 3,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: 'Es. "una mela rossa media", "petto di pollo cotto", "due cucchiai di olio d\'oliva"...',
+                            hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.03),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isListening ? Icons.mic : Icons.mic_none,
+                                color: _isListening ? const Color(0xFFFF007F) : const Color(0xFF00FFC2),
+                              ),
+                              onPressed: () {
+                                if (_isListening) {
+                                  _stopListeningWithState(setDialogState);
+                                } else {
+                                  _startListeningWithState(setDialogState);
+                                }
+                              },
+                              tooltip: 'Dettatura vocale 🎙️',
+                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: accentCyan, width: 1.5),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _isSingleFoodAiLoading
+                              ? null
+                              : () => _analyzeSingleFoodWithAiWithState(setDialogState),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accentCyan,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: _isSingleFoodAiLoading
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F0F13)))
+                              : const Icon(Icons.auto_awesome, color: Color(0xFF0F0F13), size: 16),
+                          label: Text(
+                            _isSingleFoodAiLoading ? 'Identificazione alimento...' : 'Estrai Alimento Singolo 🪄',
+                            style: const TextStyle(color: Color(0xFF0F0F13), fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_aiSingleFoodResult != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.02),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: accentCyan.withOpacity(0.15)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _aiSingleFoodResult!.name,
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                          ),
+                                          if (_aiSingleFoodResult!.brand != null && _aiSingleFoodResult!.brand!.isNotEmpty)
+                                            Text(
+                                              _aiSingleFoodResult!.brand!,
+                                              style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: accentCyan.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${_aiSingleFoodResult!.caloriesPer100g.toInt()} kcal/100g',
+                                        style: const TextStyle(color: accentCyan, fontWeight: FontWeight.bold, fontSize: 11),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('Valori per 100g stimati:', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildMiniMacro('Prot', '${_aiSingleFoodResult!.proteinsPer100g.toStringAsFixed(1)}g', accentPink),
+                                    _buildMiniMacro('Carb', '${_aiSingleFoodResult!.carbsPer100g.toStringAsFixed(1)}g', const Color(0xFFFFD700)),
+                                    _buildMiniMacro('Gras', '${_aiSingleFoodResult!.fatsPer100g.toStringAsFixed(1)}g', const Color(0xFF00E676)),
+                                    _buildMiniMacro('Fibr', '${_aiSingleFoodResult!.fibersPer100g.toStringAsFixed(1)}g', Colors.cyan),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _showAddQuantityDialog(_aiSingleFoodResult!);
+                                  },
+                                  icon: const Icon(Icons.add, color: Colors.white, size: 16),
+                                  label: const Text('Usa questo alimento', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: accentPink,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else if (_singleFoodAiError != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: accentPink.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: accentPink.withOpacity(0.2)),
+                            ),
+                            child: Text(
+                              _singleFoodAiError!,
+                              style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _startListeningWithState(StateSetter setDialogState) async {
+    final status = await Permission.microphone.request();
+    if (status.isGranted) {
+      try {
+        SystemSound.play(SystemSoundType.click);
+        HapticFeedback.mediumImpact();
+      } catch (e) {
+        debugPrint("Feedback acustico non supportato: $e");
+      }
+
+      _dictationInitialText = _singleFoodAiController.text.trim();
+      _dictationLastWords = "";
+
+      setDialogState(() {
+        _isListening = true;
+      });
+
+      await _speechToText.listen(
+        onResult: (result) {
+          final words = result.recognizedWords.trim();
+          if (words.isEmpty) return;
+
+          setDialogState(() {
+            if (_dictationLastWords.isNotEmpty && !words.toLowerCase().startsWith(_dictationLastWords.toLowerCase())) {
+              _dictationInitialText = _dictationInitialText.isEmpty
+                  ? _dictationLastWords
+                  : "$_dictationInitialText $_dictationLastWords";
+            }
+            _dictationLastWords = words;
+
+            _singleFoodAiController.text = _dictationInitialText.isEmpty
+                ? words
+                : "$_dictationInitialText $words";
+
+            if (result.finalResult) {
+              _dictationInitialText = _singleFoodAiController.text.trim();
+              _dictationLastWords = "";
+            }
+          });
+        },
+        localeId: 'it_IT',
+        listenFor: const Duration(minutes: 10),
+        pauseFor: const Duration(seconds: 60),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permesso microfono negato per la dettatura!')),
+      );
+    }
+  }
+
+  void _stopListeningWithState(StateSetter setDialogState) async {
+    await _speechToText.stop();
+    setDialogState(() {
+      _isListening = false;
+    });
+  }
+
+  Future<void> _analyzeSingleFoodWithAiWithState(StateSetter setDialogState) async {
+    final text = _singleFoodAiController.text.trim();
+    if (text.isEmpty) return;
+
+    final appState = context.read<AppState>();
+    final service = appState.geminiService;
+
+    if (service == null) {
+      setDialogState(() {
+        _singleFoodAiError = 'Servizio AI non configurato. Inserisci la chiave API Gemini nel profilo.';
+      });
+      return;
+    }
+
+    setDialogState(() {
+      _isSingleFoodAiLoading = true;
+      _aiSingleFoodResult = null;
+      _singleFoodAiError = null;
+    });
+
+    try {
+      final food = await service.analyzeSingleFood(text);
+      if (food != null) {
+        setDialogState(() {
+          _aiSingleFoodResult = food;
+        });
+      } else {
+        setDialogState(() {
+          _singleFoodAiError = 'Impossibile identificare l\'alimento. Riprova con una descrizione più dettagliata.';
+        });
+      }
+    } catch (e) {
+      setDialogState(() {
+        _singleFoodAiError = 'Errore durante l\'elaborazione: $e';
+      });
+    } finally {
+      setDialogState(() {
+        _isSingleFoodAiLoading = false;
+      });
+    }
+  }
+
+  // --- TAB 4: CRONOLOGIA ---
+  Widget _buildHistoryTab() {
+    return FutureBuilder<List<Food>>(
+      future: context.read<AppState>().getFoodHistory(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: accentCyan));
+        }
+        final list = snapshot.data ?? [];
+        if (list.isEmpty) {
+          return const Center(
+            child: Text(
+              'Nessun alimento nella cronologia.\nAggiungi i tuoi primi alimenti!',
+              style: TextStyle(color: Colors.white30, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+
+        return ListView.builder(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          itemBuilder: (context, index) => _buildFoodListTile(list[index], accentCyan),
+        );
+      },
     );
   }
 
@@ -969,7 +1246,6 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                     itemCount: filteredCustomFoods.length,
                     itemBuilder: (context, index) {
                       final food = filteredCustomFoods[index];
-                      final isPreset = food.id == 'online_1' || food.id == 'online_2';
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
@@ -995,11 +1271,10 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                                 icon: const Icon(Icons.add_circle, color: accentPink, size: 20),
                                 onPressed: () => _showAddQuantityDialog(food),
                               ),
-                              if (!isPreset)
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.white30, size: 20),
-                                  onPressed: () => _deleteFood(food),
-                                ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.white30, size: 20),
+                                onPressed: () => _deleteFood(food),
+                              ),
                             ],
                           ),
                         ),

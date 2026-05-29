@@ -304,132 +304,11 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgDark,
-      body: Stack(
-        children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
-          
-          // Overlay scuro se il menu "+" è aperto
-          if (_isAddMenuOpen)
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isAddMenuOpen = false;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                color: Colors.black.withOpacity(0.6),
-              ),
-            ),
-
-          // Menu popup dei bottoni "+" posizionato sopra il tasto
-          if (_isAddMenuOpen)
-            Positioned(
-              bottom: 84, // Subito sopra la bottom nav bar
-              right: MediaQuery.of(context).size.width * 0.14, // Allineato con il pulsante Aggiungi
-              child: _buildPopUpMenu(),
-            ),
-        ],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
       bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
-
-  Widget _buildPopUpMenu() {
-    return Container(
-      width: 190,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _bgCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildPopupItem(
-            icon: Icons.menu_book,
-            label: 'Manuale ✍️',
-            color: _accentPink,
-            onTap: () {
-              setState(() => _isAddMenuOpen = false);
-              final hour = DateTime.now().hour;
-              String defaultMeal = 'Colazione';
-              if (hour >= 11 && hour < 15) {
-                defaultMeal = 'Pranzo';
-              } else if (hour >= 15 && hour < 19) {
-                defaultMeal = 'Spuntini';
-              } else if (hour >= 19) {
-                defaultMeal = 'Cena';
-              }
-              Navigator.pushNamed(context, '/addMeal', arguments: defaultMeal);
-            },
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 6),
-            child: Divider(color: Colors.white10, height: 1),
-          ),
-          _buildPopupItem(
-            icon: Icons.auto_awesome,
-            label: 'Analisi IA 🪄',
-            color: _accentCyan,
-            onTap: () {
-              setState(() => _isAddMenuOpen = false);
-              final hour = DateTime.now().hour;
-              String defaultMeal = 'Colazione';
-              if (hour >= 11 && hour < 15) {
-                defaultMeal = 'Pranzo';
-              } else if (hour >= 15 && hour < 19) {
-                defaultMeal = 'Spuntini';
-              } else if (hour >= 19) {
-                defaultMeal = 'Cena';
-              }
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => WholeMealAiDialog(defaultMeal: defaultMeal),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPopupItem({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -438,36 +317,41 @@ class _MainScreenState extends State<MainScreen> {
       child: GestureDetector(
         onTap: () {
           HapticFeedback.mediumImpact();
-          setState(() {
-            _isAddMenuOpen = !_isAddMenuOpen;
-          });
+          final hour = DateTime.now().hour;
+          String defaultMeal = 'Colazione';
+          if (hour >= 11 && hour < 15) {
+            defaultMeal = 'Pranzo';
+          } else if (hour >= 15 && hour < 19) {
+            defaultMeal = 'Spuntini';
+          } else if (hour >= 19) {
+            defaultMeal = 'Cena';
+          }
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => WholeMealAiDialog(defaultMeal: defaultMeal),
+          );
         },
         behavior: HitTestBehavior.opaque,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedRotation(
-                turns: _isAddMenuOpen ? 0.125 : 0, // Ruota di 45 gradi (0.125 giri) se aperto per fare una "x"
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutBack,
-                child: Icon(
-                  _isAddMenuOpen ? Icons.add_circle : Icons.add_circle_outline_rounded,
-                  color: _isAddMenuOpen ? _accentPink : _accentCyan,
-                  size: 26,
-                ),
+              Icon(
+                Icons.add_circle_outline_rounded,
+                color: _accentCyan,
+                size: 26,
               ),
-              const SizedBox(height: 4),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
+              SizedBox(height: 4),
+              Text(
+                'Aggiungi',
                 style: TextStyle(
-                  color: _isAddMenuOpen ? _accentPink : _accentCyan,
+                  color: _accentCyan,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.3,
                 ),
-                child: const Text('Aggiungi'),
               ),
             ],
           ),

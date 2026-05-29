@@ -59,12 +59,10 @@ class OnlineDatabaseService {
             isOnline: true,
           );
         }).toList();
-        
-        for (final food in loadedFoods) {
-          if (!_mockOnlineFoods.any((f) => f.id == food.id)) {
-            _mockOnlineFoods.add(food);
-          }
-        }
+        _mockOnlineFoods.clear();
+        _mockOnlineFoods.addAll(loadedFoods);
+      } else {
+        await _saveFoodsToDisk();
       }
       
       final mealsFile = File('${dir.path}/custom_meals.json');
@@ -188,11 +186,8 @@ class OnlineDatabaseService {
     return true;
   }
 
-  /// Elimina un alimento personale (preimpostati esclusi)
+  /// Elimina un alimento personale
   Future<bool> deleteCustomFood(String foodId) async {
-    if (foodId == 'online_1' || foodId == 'online_2') {
-      throw Exception('Non è consentito cancellare gli alimenti preimpostati.');
-    }
     await _ensureLoaded();
     await Future.delayed(const Duration(milliseconds: 500));
     _mockOnlineFoods.removeWhere((f) => f.id == foodId);

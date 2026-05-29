@@ -61,23 +61,26 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     _customProtController.addListener(_updateCalculatedCalories);
     _customCarbController.addListener(_updateCalculatedCalories);
     _customFatController.addListener(_updateCalculatedCalories);
+    _customFibController.addListener(_updateCalculatedCalories);
   }
 
   void _updateCalculatedCalories() {
     final protText = _customProtController.text.trim();
     final carbText = _customCarbController.text.trim();
     final fatText = _customFatController.text.trim();
+    final fibText = _customFibController.text.trim();
 
     // Se tutti i campi sono vuoti, non forzare le calorie a zero per consentire l'inserimento libero
-    if (protText.isEmpty && carbText.isEmpty && fatText.isEmpty) {
+    if (protText.isEmpty && carbText.isEmpty && fatText.isEmpty && fibText.isEmpty) {
       return;
     }
 
     final prot = double.tryParse(protText) ?? 0.0;
     final carb = double.tryParse(carbText) ?? 0.0;
     final fat = double.tryParse(fatText) ?? 0.0;
+    final fib = double.tryParse(fibText) ?? 0.0;
 
-    final double calculated = (prot * 4.0) + (carb * 4.0) + (fat * 9.0);
+    final double calculated = (prot * 4.0) + (carb * 4.0) + (fat * 9.0) + (fib * 2.0);
     
     // Mostra il valore calcolato all'utente
     _customCalController.text = calculated.toStringAsFixed(calculated % 1 == 0 ? 0 : 1);
@@ -667,7 +670,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (food.isCustom && food.id != 'online_1' && food.id != 'online_2') ...[
+            if (food.isCustom) ...[
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.white30, size: 20),
                 tooltip: 'Elimina',
@@ -763,19 +766,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 20),
 
-          // Codici di test rapidi
-          Text('Codici di test rapidi:', style: TextStyle(color: Colors.white38, fontSize: 11)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildMockBarcodeChip('8001120003008', 'Pasta Barilla'),
-              _buildMockBarcodeChip('3017620422003', 'Nutella Ferrero'),
-              _buildMockBarcodeChip('8000500003784', 'Acqua Levissima'),
-            ],
-          ),
-          const SizedBox(height: 20),
+
 
           // Input Manuale
           Row(
@@ -880,16 +871,6 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildMockBarcodeChip(String code, String label) {
-    return ActionChip(
-      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
-      backgroundColor: Colors.white.withOpacity(0.08),
-      onPressed: () {
-        _barcodeController.text = code;
-        _scanBarcode(code);
-      },
-    );
-  }
 
   // TAB 3: IA SINGOLO
   Widget _buildAiTab(Color cyan, Color pink) {

@@ -70,22 +70,25 @@ class _ProfileFormState extends State<ProfileForm> {
     _proteinsController.addListener(_updateCalculatedGoalCalories);
     _carbsController.addListener(_updateCalculatedGoalCalories);
     _fatsController.addListener(_updateCalculatedGoalCalories);
+    _fibersController.addListener(_updateCalculatedGoalCalories);
   }
 
   void _updateCalculatedGoalCalories() {
     final protText = _proteinsController.text.trim();
     final carbText = _carbsController.text.trim();
     final fatText = _fatsController.text.trim();
+    final fibText = _fibersController.text.trim();
 
-    if (protText.isEmpty && carbText.isEmpty && fatText.isEmpty) {
+    if (protText.isEmpty && carbText.isEmpty && fatText.isEmpty && fibText.isEmpty) {
       return;
     }
 
     final prot = double.tryParse(protText) ?? 0.0;
     final carb = double.tryParse(carbText) ?? 0.0;
     final fat = double.tryParse(fatText) ?? 0.0;
+    final fib = double.tryParse(fibText) ?? 0.0;
 
-    final double calculated = (prot * 4.0) + (carb * 4.0) + (fat * 9.0);
+    final double calculated = (prot * 4.0) + (carb * 4.0) + (fat * 9.0) + (fib * 2.0);
     _caloriesController.text = calculated.toStringAsFixed(calculated % 1 == 0 ? 0 : 1);
   }
 
