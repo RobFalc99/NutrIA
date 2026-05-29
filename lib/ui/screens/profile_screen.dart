@@ -48,10 +48,45 @@ class _ProfileFormState extends State<ProfileForm> {
   late String _selectedModel;
   bool _obscureApiKey = true;
 
+  bool _isDirty = false;
+
+  void _checkIfDirty() {
+    final nameVal = _nameController.text.trim().isEmpty ? 'Atleta KCALcolatore' : _nameController.text.trim();
+    final calVal = double.tryParse(_caloriesController.text) ?? 2000;
+    final protVal = double.tryParse(_proteinsController.text) ?? 150;
+    final carbVal = double.tryParse(_carbsController.text) ?? 200;
+    final fatVal = double.tryParse(_fatsController.text) ?? 60;
+    final fibVal = double.tryParse(_fibersController.text) ?? 30;
+    final trackingVal = _trackingMode;
+    final use8020Val = _use8020Mode;
+    final apiKeyVal = _apiKeyController.text.trim().isEmpty ? null : _apiKeyController.text.trim();
+    final modelVal = _selectedModel;
+
+    final user = widget.user;
+    final bool dirty = nameVal != user.name ||
+        calVal != user.goalCalories ||
+        protVal != user.goalProteins ||
+        carbVal != user.goalCarbs ||
+        fatVal != user.goalFats ||
+        fibVal != user.goalFibers ||
+        trackingVal != user.trackingMode ||
+        use8020Val != user.use8020Mode ||
+        apiKeyVal != user.geminiApiKey ||
+        modelVal != user.geminiModel;
+
+    if (dirty != _isDirty) {
+      setState(() {
+        _isDirty = dirty;
+      });
+      context.read<AppState>().isProfileDirty = dirty;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _initControllers();
+    context.read<AppState>().saveProfileCallback = _save;
   }
 
   void _initControllers() {
@@ -71,6 +106,14 @@ class _ProfileFormState extends State<ProfileForm> {
     _carbsController.addListener(_updateCalculatedGoalCalories);
     _fatsController.addListener(_updateCalculatedGoalCalories);
     _fibersController.addListener(_updateCalculatedGoalCalories);
+
+    _nameController.addListener(_checkIfDirty);
+    _caloriesController.addListener(_checkIfDirty);
+    _proteinsController.addListener(_checkIfDirty);
+    _carbsController.addListener(_checkIfDirty);
+    _fatsController.addListener(_checkIfDirty);
+    _fibersController.addListener(_checkIfDirty);
+    _apiKeyController.addListener(_checkIfDirty);
   }
 
   void _updateCalculatedGoalCalories() {
@@ -139,11 +182,13 @@ class _ProfileFormState extends State<ProfileForm> {
           _use8020Mode = widget.user.use8020Mode;
         });
       }
+      _checkIfDirty();
     }
   }
 
   @override
   void dispose() {
+    context.read<AppState>().saveProfileCallback = null;
     _nameController.dispose();
     _caloriesController.dispose();
     _proteinsController.dispose();
@@ -172,6 +217,10 @@ class _ProfileFormState extends State<ProfileForm> {
           : _apiKeyController.text.trim()
       ..geminiModel = _selectedModel;
     appState.updateProfile(profile);
+    setState(() {
+      _isDirty = false;
+    });
+    appState.isProfileDirty = false;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Profilo salvato!'),
@@ -183,6 +232,16 @@ class _ProfileFormState extends State<ProfileForm> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final user = appState.currentUser;
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F0F13),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF00FFC2))),
+      );
+    }
+    final stats = appState.weeklyStats;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F13),
       appBar: AppBar(
@@ -287,6 +346,133 @@ class _ProfileFormState extends State<ProfileForm> {
                 );
               },
             ),
+
+            // Statistiche Settimanali 80/20 (Glassmorphic & Responsive Card)
+            if (user.use8020Mode) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [const Color(0xFF00FFC2).withOpacity(0.08), const Color(0xFFFF007F).withOpacity(0.04)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Analisi Settimanale 80/20',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${stats.trackedDays.length}/7 Giorni Tracciati',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Media ultimi 7 giorni (escluso oggi). Le medie escludono i Cheat Days.',
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                    const SizedBox(height: 16),
+                    if (!appState.hasEnoughDataForAverage) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.white.withOpacity(0.06)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.hourglass_empty, color: Colors.white38, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Dati insufficienti — registra almeno 7 giorni per vedere le medie.',
+                                style: TextStyle(color: Colors.white38, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.04),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Calorie Medie', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${stats.averageCalories.toInt()} kcal',
+                                    style: TextStyle(
+                                      color: (stats.averageCalories <= user.goalCalories) ? const Color(0xFF00FFC2) : const Color(0xFFFF007F),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.04),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Proteine Medie', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${stats.averageProteins.toInt()} g',
+                                    style: TextStyle(
+                                      color: (stats.averageProteins >= user.goalProteins) ? const Color(0xFF00FFC2) : const Color(0xFFFFD700),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
 
             // ── Modalità tracciamento ────────────────────────────────────────
             const _SectionTitle(title: 'Modalita\' di Tracciamento'),
@@ -433,24 +619,25 @@ class _ProfileFormState extends State<ProfileForm> {
                 }
               },
             ),
-            const SizedBox(height: 32),
-
-            // ── Bottone salva ────────────────────────────────────────────────
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00FFC2),
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text(
-                  'Salva Configurazione',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            if (_isDirty) ...[
+              const SizedBox(height: 32),
+              // ── Bottone salva ────────────────────────────────────────────────
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00FFC2),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text(
+                    'Salva Configurazione',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 40),
           ],
         ),

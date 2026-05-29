@@ -18,6 +18,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedWaterMl = 250; // Quantità di acqua selezionata di default (ml)
+  bool _showHistoryCalendar = false;
 
   String _formatSelectedDate(DateTime date) {
     final now = DateTime.now();
@@ -287,6 +288,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          if (user.use8020Mode)
+            Row(
+              children: [
+                Text(
+                  currentDay.isTracked ? 'Tracciato' : 'Libero',
+                  style: TextStyle(
+                    color: currentDay.isTracked ? accentCyan : accentPink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Switch(
+                  value: currentDay.isTracked,
+                  onChanged: (val) {
+                    appState.toggleTrackedCurrentDay();
+                  },
+                  activeColor: accentCyan,
+                  activeTrackColor: accentCyan.withOpacity(0.2),
+                  inactiveThumbColor: accentPink,
+                  inactiveTrackColor: accentPink.withOpacity(0.2),
+                ),
+              ],
+            ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -311,29 +338,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onPressed: () => appState.previousDay(),
                   ),
                   GestureDetector(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: appState.selectedDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: accentCyan,
-                                onPrimary: Colors.black,
-                                surface: Color(0xFF16161D),
-                                onSurface: Colors.white,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null) {
-                        appState.setSelectedDate(picked);
-                      }
+                    onTap: () {
+                      setState(() {
+                        _showHistoryCalendar = !_showHistoryCalendar;
+                      });
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -380,69 +388,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
 
             // Mini Calendario Storico
-            _MiniHistoryCalendar(
-              appState: appState,
-              accentCyan: accentCyan,
-              accentPink: accentPink,
-            ),
+            if (_showHistoryCalendar)
+              _MiniHistoryCalendar(
+                appState: appState,
+                accentCyan: accentCyan,
+                accentPink: accentPink,
+                onClose: () {
+                  setState(() {
+                    _showHistoryCalendar = false;
+                  });
+                },
+              ),
 
-            // 80/20 Cheat Day Toggle (Elegante Glassmorphic Card)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: currentDay.isTracked 
-                    ? Colors.white.withOpacity(0.03)
-                    : accentPink.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: currentDay.isTracked 
-                      ? Colors.white.withOpacity(0.06)
-                      : accentPink.withOpacity(0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    currentDay.isTracked ? Icons.check_circle_outline : Icons.celebration,
-                    color: currentDay.isTracked ? accentCyan : accentPink,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          currentDay.isTracked ? 'Giorno Tracciato' : 'Cheat Day / Giorno Libero',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        Text(
-                          currentDay.isTracked 
-                              ? 'I dati nutrizionali di oggi sono inclusi nelle medie settimanali.'
-                              : 'Escluso dalle statistiche settimanali per la regola 80/20.',
-                          style: const TextStyle(color: Colors.white54, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: currentDay.isTracked,
-                    onChanged: (val) {
-                      appState.toggleTrackedCurrentDay();
-                    },
-                    activeColor: accentCyan,
-                    activeTrackColor: accentCyan.withOpacity(0.2),
-                    inactiveThumbColor: accentPink,
-                    inactiveTrackColor: accentPink.withOpacity(0.2),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
 
             // Cerchio Calorie & Macro Progress
             Container(
@@ -661,98 +618,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Statistiche Settimanali 80/20 (Glassmorphic & Responsive Card)
-            if (user.use8020Mode) ...[
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [accentCyan.withOpacity(0.08), accentPink.withOpacity(0.04)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Analisi Settimanale 80/20',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.06),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '$trackedDaysCount/7 Giorni Tracciati',
-                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Media ultimi 7 giorni (escluso oggi). Le medie escludono i Cheat Days.',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                    const SizedBox(height: 16),
-                    if (!appState.hasEnoughDataForAverage) ...[
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.03),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white.withOpacity(0.06)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.hourglass_empty, color: Colors.white38, size: 20),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Dati insufficienti — registra almeno 7 giorni per vedere le medie.',
-                                style: TextStyle(color: Colors.white38, fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildWeeklyStatBox(
-                              'Calorie Medie',
-                              '${stats.averageCalories.toInt()} kcal',
-                              (stats.averageCalories <= user.goalCalories) ? accentCyan : accentPink,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildWeeklyStatBox(
-                              'Proteine Medie',
-                              '${stats.averageProteins.toInt()} g',
-                              (stats.averageProteins >= user.goalProteins) ? accentCyan : accentYellow,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-            ],
-
           ],
         ),
       ),
@@ -1710,14 +1575,14 @@ class _MiniHistoryCalendar extends StatefulWidget {
   final AppState appState;
   final Color accentCyan;
   final Color accentPink;
-  const _MiniHistoryCalendar({required this.appState, required this.accentCyan, required this.accentPink});
+  final VoidCallback onClose;
+  const _MiniHistoryCalendar({required this.appState, required this.accentCyan, required this.accentPink, required this.onClose});
 
   @override
   State<_MiniHistoryCalendar> createState() => _MiniHistoryCalendarState();
 }
 
 class _MiniHistoryCalendarState extends State<_MiniHistoryCalendar> {
-  bool _expanded = false;
   DateTime _viewMonth = DateTime(DateTime.now().year, DateTime.now().month);
   Set<DateTime> _trackedDays = {};
   bool _loaded = false;
@@ -1748,98 +1613,92 @@ class _MiniHistoryCalendarState extends State<_MiniHistoryCalendar> {
     final months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
                     'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
-    return GestureDetector(
-      onTap: () {
-        setState(() => _expanded = !_expanded);
-        if (_expanded) _loadTrackedDays();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.02),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _expanded ? cyan.withOpacity(0.15) : Colors.white.withOpacity(0.05)),
-        ),
-        child: Column(
-          children: [
-            // Header tap
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(Icons.calendar_month_rounded, color: cyan.withOpacity(0.7), size: 18),
-                  const SizedBox(width: 8),
-                  const Text('Storico', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
-                  const Spacer(),
-                  if (_loaded && _trackedDays.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: cyan.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${_trackedDays.length} giorni',
-                        style: TextStyle(color: cyan, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cyan.withOpacity(0.15)),
+      ),
+      child: Column(
+        children: [
+          // Header tap
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_month_rounded, color: cyan.withOpacity(0.7), size: 18),
+                const SizedBox(width: 8),
+                const Text('Storico', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                if (_loaded && _trackedDays.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: cyan.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  const SizedBox(width: 8),
-                  Icon(_expanded ? Icons.expand_less : Icons.expand_more, color: Colors.white38, size: 18),
-                ],
-              ),
+                    child: Text(
+                      '${_trackedDays.length} giorni',
+                      style: TextStyle(color: cyan, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white38, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: widget.onClose,
+                ),
+              ],
             ),
+          ),
 
-            // Calendario espandibile
-            if (_expanded) ...[
-              const Divider(color: Colors.white10, height: 1),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
+          const Divider(color: Colors.white10, height: 1),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                // Navigazione mese
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Navigazione mese
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.chevron_left, color: cyan, size: 20),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: _prevMonth,
-                        ),
-                        Text(
-                          '${months[_viewMonth.month - 1]} ${_viewMonth.year}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.chevron_right, color: cyan, size: 20),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: _nextMonth,
-                        ),
-                      ],
+                    IconButton(
+                      icon: Icon(Icons.chevron_left, color: cyan, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: _prevMonth,
                     ),
-                    const SizedBox(height: 8),
-
-                    // Intestazioni giorni settimana
-                    Row(
-                      children: ['L','M','M','G','V','S','D'].map((d) => Expanded(
-                        child: Center(
-                          child: Text(d, style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
-                        ),
-                      )).toList(),
+                    Text(
+                      '${months[_viewMonth.month - 1]} ${_viewMonth.year}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                    const SizedBox(height: 4),
-
-                    // Griglia giorni
-                    _buildCalendarGrid(cyan, pink),
+                    IconButton(
+                      icon: Icon(Icons.chevron_right, color: cyan, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: _nextMonth,
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ],
-        ),
+                const SizedBox(height: 8),
+
+                // Intestazioni giorni settimana
+                Row(
+                  children: ['L','M','M','G','V','S','D'].map((d) => Expanded(
+                    child: Center(
+                      child: Text(d, style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  )).toList(),
+                ),
+                const SizedBox(height: 4),
+
+                // Griglia giorni
+                _buildCalendarGrid(cyan, pink),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

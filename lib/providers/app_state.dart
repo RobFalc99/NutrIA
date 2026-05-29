@@ -19,6 +19,17 @@ class AppState extends ChangeNotifier {
   List<Meal> _customMeals = [];
   bool isLoadingOnline = false;
 
+  bool _isProfileDirty = false;
+  bool get isProfileDirty => _isProfileDirty;
+  set isProfileDirty(bool val) {
+    if (_isProfileDirty != val) {
+      _isProfileDirty = val;
+      notifyListeners();
+    }
+  }
+
+  VoidCallback? saveProfileCallback;
+
   DateTime _selectedDate = _normalizeDate(DateTime.now());
   DateTime get selectedDate => _selectedDate;
 
@@ -464,7 +475,8 @@ class AppState extends ChangeNotifier {
           }
         }
       }
-      return uniqueFoods.values.toList().reversed.toList();
+      final list = uniqueFoods.values.toList().reversed.toList();
+      return list.take(100).toList();
     } catch (e) {
       print('Errore caricamento cronologia cibi: $e');
       return [];

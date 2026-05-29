@@ -202,10 +202,82 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onTabTapped(int index) {
     HapticFeedback.lightImpact();
-    setState(() {
-      _currentIndex = index;
-      _isAddMenuOpen = false; // Chiude il menu se si cambia tab
-    });
+    final appState = Provider.of<AppState>(context, listen: false);
+    if (_currentIndex == 2 && index != 2 && appState.isProfileDirty) {
+      _showUnsavedChangesDialog(index);
+    } else {
+      setState(() {
+        _currentIndex = index;
+        _isAddMenuOpen = false; // Chiude il menu se si cambia tab
+      });
+    }
+  }
+
+  void _showUnsavedChangesDialog(int targetIndex) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _bgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: _accentPink, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Modifiche non salvate ⚠️',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Ci sono modifiche non salvate nel tuo profilo. Vuoi salvare prima di uscire, uscire senza salvare o annullare?',
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                final appState = Provider.of<AppState>(context, listen: false);
+                appState.isProfileDirty = false;
+                setState(() {
+                  _currentIndex = targetIndex;
+                  _isAddMenuOpen = false;
+                });
+              },
+              child: const Text('Esci senza salvare', style: TextStyle(color: Colors.white54, fontSize: 12)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Annulla', style: TextStyle(color: _accentCyan, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                final appState = Provider.of<AppState>(context, listen: false);
+                if (appState.saveProfileCallback != null) {
+                  appState.saveProfileCallback!();
+                }
+                appState.isProfileDirty = false;
+                setState(() {
+                  _currentIndex = targetIndex;
+                  _isAddMenuOpen = false;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentPink,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Salva ed esci', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showInfoGuideDialog(BuildContext context) {
@@ -345,7 +417,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
               SizedBox(height: 4),
               Text(
-                'Aggiungi',
+                'Pasto IA',
                 style: TextStyle(
                   color: _accentCyan,
                   fontSize: 11,
