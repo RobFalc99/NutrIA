@@ -35,12 +35,15 @@ class OpenFoodFactsService {
       'Accept': 'application/json',
     };
 
-    final hosts = [
+    // world.openfoodfacts.org è il server globale centralizzato ed estremamente stabile.
+    // Lo interroghiamo come prima scelta per una latenza minima e risposte certe.
+    // In caso di errore o timeout di rete, facciamo fallback istantaneo su it.openfoodfacts.org.
+    final configs = [
       {'host': 'world.openfoodfacts.org', 'lc': 'it', 'cc': 'it'},
       {'host': 'it.openfoodfacts.org', 'lc': 'it', 'cc': 'it'},
     ];
 
-    final futures = hosts.map((config) async {
+    for (final config in configs) {
       final host = config['host']!;
       final url = Uri.https(host, '/cgi/search.pl', {
         'search_terms': searchTerms,
@@ -53,7 +56,7 @@ class OpenFoodFactsService {
       });
 
       try {
-        final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
+        final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 3));
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (data['products'] != null) {
@@ -63,37 +66,15 @@ class OpenFoodFactsService {
                 .where((food) => food != null)
                 .cast<Food>()
                 .toList();
-            return results;
+            if (results.isNotEmpty) {
+              return results;
+            }
           }
         }
       } catch (e) {
-        print('Errore OpenFoodFacts searchProducts su $host: $e');
+        print('Errore OpenFoodFacts searchProducts su $host: $e. Tento fallback.');
       }
-      return <Food>[];
-    }).toList();
-
-    try {
-      final resultsList = await Future.wait(futures);
-      final worldResults = resultsList[0];
-      final itResults = resultsList[1];
-
-      final Map<String, Food> merged = {};
-      for (final f in itResults) {
-        if (f.id.isNotEmpty) merged[f.id] = f;
-      }
-      for (final f in worldResults) {
-        if (f.id.isNotEmpty && !merged.containsKey(f.id)) {
-          merged[f.id] = f;
-        }
-      }
-
-      if (merged.isNotEmpty) {
-        return merged.values.toList();
-      }
-    } catch (e) {
-      print('Errore nella risoluzione delle ricerche parallele OpenFoodFacts: $e');
     }
-
     return [];
   }
 

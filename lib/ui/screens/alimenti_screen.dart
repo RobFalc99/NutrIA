@@ -415,7 +415,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
             return AlertDialog(
               backgroundColor: bgCard,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,7 +446,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                         suffixText: 'g',
                         suffixStyle: const TextStyle(color: Colors.white38),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.04),
+                        fillColor: Colors.white.withValues(alpha: 0.04),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                       ),
                       onChanged: (val) {
@@ -461,7 +461,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                       children: [50, 100, 150, 200, 250].map((g) {
                         return ActionChip(
                           label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                          backgroundColor: Colors.white.withOpacity(0.06),
+                          backgroundColor: Colors.white.withValues(alpha: 0.06),
                           padding: EdgeInsets.zero,
                           onPressed: () {
                             textController.text = g.toString();
@@ -486,83 +486,112 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Piccolo Dropdown del pasto a sinistra
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    if (showSaveFavorite)
+                      TextButton.icon(
+                        onPressed: () {
+                          final appState = context.read<AppState>();
+                          appState.saveCustomFood(food);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Alimento salvato nei tuoi alimenti!'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.bookmark_add_rounded, color: accentCyan, size: 18),
+                        label: const Text('Salva', style: TextStyle(color: accentCyan, fontWeight: FontWeight.bold, fontSize: 12)),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    ElevatedButton(
+                      onPressed: amount <= 0 ? null : () {
+                        _showSelectMealAndAddPopup(food, amount);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentPink,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedMealTarget,
-                          dropdownColor: bgCard,
-                          icon: const Icon(Icons.arrow_drop_down, color: accentCyan, size: 18),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                          items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini'].map((meal) {
-                            return DropdownMenuItem<String>(
-                              value: meal,
-                              child: Text(meal),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setDialogState(() {
-                                _selectedMealTarget = val;
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-
-                    // Azioni a destra
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (showSaveFavorite)
-                          TextButton(
-                            onPressed: () {
-                              final appState = context.read<AppState>();
-                              appState.saveCustomFood(food);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Alimento salvato nei tuoi alimenti!'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Salva', style: TextStyle(color: accentCyan, fontWeight: FontWeight.bold, fontSize: 12)),
-                          ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: amount <= 0 ? null : () {
-                            final appState = context.read<AppState>();
-                            appState.addMealItem(_selectedMealTarget, food, amount);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${food.name} (${amount.toInt()}g) aggiunto a $_selectedMealTarget!'),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accentPink,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          child: const Text('Aggiungi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                        ),
-                      ],
+                      child: const Text('Aggiungi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ],
                 ),
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showSelectMealAndAddPopup(Food food, double amount) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: bgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text(
+            'Seleziona Pasto',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ['Colazione', 'Pranzo', 'Cena', 'Spuntini'].map((meal) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final appState = this.context.read<AppState>();
+                      appState.addMealItem(meal, food, amount);
+
+                      Navigator.pop(context); // Chiude il selettore
+                      Navigator.pop(this.context); // Chiude il quantitativo
+
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: Text('${food.name} (${amount.toInt()}g) aggiunto a $meal!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.04),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          meal == 'Colazione'
+                              ? Icons.wb_sunny_rounded
+                              : meal == 'Pranzo'
+                                  ? Icons.lunch_dining_rounded
+                                  : meal == 'Cena'
+                                      ? Icons.dinner_dining_rounded
+                                      : Icons.bakery_dining_rounded,
+                          color: accentCyan,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(meal, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         );
       },
     );
@@ -965,7 +994,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       builder: (context) {
         return AlertDialog(
           backgroundColor: bgCard,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: const Row(
             children: [
@@ -1181,7 +1210,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
             return Dialog(
               backgroundColor: bgCard,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               child: SingleChildScrollView(
                 child: Padding(
