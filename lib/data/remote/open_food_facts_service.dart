@@ -27,32 +27,73 @@ class OpenFoodFactsService {
 
   /// Cerca prodotti tramite testo
   Future<List<Food>> searchProducts(String query) async {
-    final url = Uri.https('world.openfoodfacts.org', '/cgi/search.pl', {
-      'search_terms': query,
-      'search_simple': '1',
-      'action': 'process',
-      'json': '1',
-      'page_size': '20',
-    });
+    final searchTerms = query.trim();
+    if (searchTerms.isEmpty) return [];
+
     final headers = {
-      'User-Agent': 'kCaliApp/1.0.0 (tony@example.com) Flutter/Isar'
+      'User-Agent': 'kCaliApp/1.0.0 (tony@example.com) Flutter/Isar',
+      'Accept': 'application/json',
     };
+
+    final hosts = [
+      {'host': 'world.openfoodfacts.org', 'lc': 'it', 'cc': 'it'},
+      {'host': 'it.openfoodfacts.org', 'lc': 'it', 'cc': 'it'},
+    ];
+
+    final futures = hosts.map((config) async {
+      final host = config['host']!;
+      final url = Uri.https(host, '/cgi/search.pl', {
+        'search_terms': searchTerms,
+        'search_simple': '1',
+        'action': 'process',
+        'json': '1',
+        'page_size': '30',
+        'lc': config['lc']!,
+        'cc': config['cc']!,
+      });
+
+      try {
+        final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['products'] != null) {
+            final List products = data['products'];
+            final List<Food> results = products
+                .map((p) => _parseProduct(p))
+                .where((food) => food != null)
+                .cast<Food>()
+                .toList();
+            return results;
+          }
+        }
+      } catch (e) {
+        print('Errore OpenFoodFacts searchProducts su $host: $e');
+      }
+      return <Food>[];
+    }).toList();
+
     try {
-      final response = await http.get(url, headers: headers);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['products'] != null) {
-          final List products = data['products'];
-          return products
-              .map((p) => _parseProduct(p))
-              .where((food) => food != null)
-              .cast<Food>()
-              .toList();
+      final resultsList = await Future.wait(futures);
+      final worldResults = resultsList[0];
+      final itResults = resultsList[1];
+
+      final Map<String, Food> merged = {};
+      for (final f in itResults) {
+        if (f.id.isNotEmpty) merged[f.id] = f;
+      }
+      for (final f in worldResults) {
+        if (f.id.isNotEmpty && !merged.containsKey(f.id)) {
+          merged[f.id] = f;
         }
       }
+
+      if (merged.isNotEmpty) {
+        return merged.values.toList();
+      }
     } catch (e) {
-      print('Errore OpenFoodFacts searchProducts: $e');
+      print('Errore nella risoluzione delle ricerche parallele OpenFoodFacts: $e');
     }
+
     return [];
   }
 

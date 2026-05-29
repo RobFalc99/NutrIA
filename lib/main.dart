@@ -8,7 +8,7 @@ import 'data/local/entities/daily_log_entity.dart';
 import 'data/local/entities/user_profile_entity.dart';
 import 'providers/app_state.dart';
 import 'ui/screens/main_screen.dart';
-import 'ui/screens/add_meal_screen.dart';
+import 'ui/screens/alimenti_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,7 +58,10 @@ class KCaliApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const MainScreen(),
-        '/addMeal': (context) => const AddMealScreen(),
+        '/addMeal': (context) {
+          final mealTarget = ModalRoute.of(context)?.settings.arguments as String?;
+          return AlimentiScreen(initialMealTarget: mealTarget);
+        },
       },
     );
   }

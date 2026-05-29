@@ -11,7 +11,8 @@ import '../../data/remote/open_food_facts_service.dart';
 import 'add_meal_screen.dart'; // Per riutilizzare BarcodeScannerScreen
 
 class AlimentiScreen extends StatefulWidget {
-  const AlimentiScreen({super.key});
+  final String? initialMealTarget;
+  const AlimentiScreen({super.key, this.initialMealTarget});
 
   @override
   State<AlimentiScreen> createState() => _AlimentiScreenState();
@@ -63,6 +64,38 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _initSpeech();
+    if (widget.initialMealTarget != null) {
+      _selectedMealTarget = widget.initialMealTarget!;
+    }
+  }
+
+  void _showLoadingDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: bgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: accentCyan),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _initSpeech() async {
@@ -239,35 +272,61 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       return;
     }
 
-    final scannedBarcode = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
-    );
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.camera, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
+    if (image == null) return;
 
-    if (scannedBarcode != null && scannedBarcode.isNotEmpty) {
-      setState(() {
-        _isSearching = true;
-        _searchResults = [];
-      });
+    _showLoadingDialog(context, 'Lettura del codice a barre con l\'IA...');
 
-      try {
-        final product = await _openFoodFactsService.getProductByBarcode(scannedBarcode);
-        if (product != null) {
-          _showAddQuantityDialog(product);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Nessun alimento trovato per il barcode: $scannedBarcode')),
-          );
-        }
-      } catch (e) {
+    try {
+      final bytes = await image.readAsBytes();
+      final appState = context.read<AppState>();
+      final service = appState.geminiService;
+      if (service == null) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore durante la ricerca del barcode: $e')),
+          const SnackBar(content: Text('Servizio AI non configurato. Inserisci la chiave API Gemini nel profilo.')),
         );
-      } finally {
-        setState(() {
-          _isSearching = false;
-        });
+        return;
       }
+
+      final scannedBarcode = await service.extractBarcodeFromImage(bytes);
+      Navigator.pop(context);
+
+      if (scannedBarcode != null && scannedBarcode.isNotEmpty) {
+        setState(() {
+          _isSearching = true;
+          _searchResults = [];
+        });
+
+        try {
+          final product = await _openFoodFactsService.getProductByBarcode(scannedBarcode);
+          if (product != null) {
+            _showAddQuantityDialog(product);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Nessun alimento trovato per il barcode: $scannedBarcode')),
+            );
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Errore durante la ricerca del barcode: $e')),
+          );
+        } finally {
+          setState(() {
+            _isSearching = false;
+          });
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossibile estrarre il codice a barre. Inquadralo da vicino e riprova.')),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore durante la scansione del barcode: $e')),
+      );
     }
   }
 
@@ -285,6 +344,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     final image = await picker.pickImage(source: ImageSource.camera, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
     if (image == null) return;
 
+    _showLoadingDialog(context, 'Analisi tabella nutrizionale con l\'IA...');
     setState(() => _isMacroScanning = true);
 
     try {
@@ -292,6 +352,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       final appState = context.read<AppState>();
       final service = appState.geminiService;
       if (service == null) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Servizio AI non configurato. Inserisci la chiave API Gemini nel profilo.')),
         );
@@ -299,6 +360,8 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       }
 
       final result = await service.analyzeMacroImage(bytes);
+      Navigator.pop(context);
+
       if (result != null) {
         final String name = result['name'] ?? 'Etichetta Scansionata';
         final String? brand = result['brand'];
@@ -327,6 +390,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
         );
       }
     } catch (e) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore durante la scansione: $e')));
     } finally {
       setState(() => _isMacroScanning = false);
@@ -351,6 +415,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
             return AlertDialog(
               backgroundColor: bgCard,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,38 +435,6 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Selettore Pasto Target
-                    const Text('Seleziona Pasto:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: DropdownButton<String>(
-                        value: _selectedMealTarget,
-                        dropdownColor: bgCard,
-                        isExpanded: true,
-                        underline: const SizedBox(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini'].map((meal) {
-                          return DropdownMenuItem<String>(
-                            value: meal,
-                            child: Text(meal),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              _selectedMealTarget = val;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
                     TextField(
                       controller: textController,
                       keyboardType: TextInputType.number,
@@ -448,40 +481,84 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                   ],
                 ),
               ),
-              actionsPadding: const EdgeInsets.all(16),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               actions: [
-                if (showSaveFavorite)
-                  TextButton(
-                    onPressed: () {
-                      final appState = context.read<AppState>();
-                      appState.saveCustomFood(food);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Alimento salvato nei tuoi alimenti!'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Salva nei Preferiti', style: TextStyle(color: accentCyan, fontWeight: FontWeight.bold)),
-                  ),
-                ElevatedButton(
-                  onPressed: amount <= 0 ? null : () {
-                    final appState = context.read<AppState>();
-                    appState.addMealItem(_selectedMealTarget, food, amount);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${food.name} (${amount.toInt()}g) aggiunto a $_selectedMealTarget!'),
-                        behavior: SnackBarBehavior.floating,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Piccolo Dropdown del pasto a sinistra
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
                       ),
-                    );
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accentPink,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Aggiungi al Diario', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedMealTarget,
+                          dropdownColor: bgCard,
+                          icon: const Icon(Icons.arrow_drop_down, color: accentCyan, size: 18),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini'].map((meal) {
+                            return DropdownMenuItem<String>(
+                              value: meal,
+                              child: Text(meal),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setDialogState(() {
+                                _selectedMealTarget = val;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    // Azioni a destra
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (showSaveFavorite)
+                          TextButton(
+                            onPressed: () {
+                              final appState = context.read<AppState>();
+                              appState.saveCustomFood(food);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Alimento salvato nei tuoi alimenti!'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Salva', style: TextStyle(color: accentCyan, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: amount <= 0 ? null : () {
+                            final appState = context.read<AppState>();
+                            appState.addMealItem(_selectedMealTarget, food, amount);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${food.name} (${amount.toInt()}g) aggiunto a $_selectedMealTarget!'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accentPink,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          child: const Text('Aggiungi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             );
@@ -630,6 +707,8 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final hasMealTarget = widget.initialMealTarget != null;
+
     return Scaffold(
       backgroundColor: bgDark,
       appBar: AppBar(
@@ -652,13 +731,50 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildMyFoodsTab(),
-          _buildSearchTab(),
-          _buildNewFoodTab(),
-          _buildHistoryTab(),
+          if (hasMealTarget)
+            Container(
+              color: accentPink.withValues(alpha: 0.1),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              child: Row(
+                children: [
+                  const Icon(Icons.restaurant_menu, color: accentPink, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Inserimento in corso per: ',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    widget.initialMealTarget!,
+                    style: const TextStyle(color: accentCyan, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: accentPink.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      widget.initialMealTarget!.toUpperCase(),
+                      style: const TextStyle(color: accentPink, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildMyFoodsTab(),
+                _buildSearchTab(),
+                _buildNewFoodTab(),
+                _buildHistoryTab(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -791,20 +907,6 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.add_circle_outline_rounded, size: 64, color: accentCyan),
-          const SizedBox(height: 16),
-          const Text(
-            'Acquisisci Nuovo Alimento',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Scegli il metodo che preferisci per estrarre o stimare i valori nutrizionali del tuo alimento.',
-            style: TextStyle(color: Colors.white54, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
 
           // 1. Tabella Nutrizionale Card
           _buildNewFoodActionCard(
@@ -863,6 +965,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       builder: (context) {
         return AlertDialog(
           backgroundColor: bgCard,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: const Row(
             children: [
@@ -1078,6 +1181,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
             return Dialog(
               backgroundColor: bgCard,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               child: SingleChildScrollView(
                 child: Padding(
