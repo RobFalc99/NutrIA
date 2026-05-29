@@ -8,8 +8,11 @@ class OpenFoodFactsService {
   /// Cerca un prodotto tramite codice a barre
   Future<Food?> getProductByBarcode(String barcode) async {
     final url = Uri.parse('$_baseUrl/api/v0/product/$barcode.json');
+    final headers = {
+      'User-Agent': 'kCaliApp/1.0.0 (tony@example.com) Flutter/Isar'
+    };
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: headers);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 1 && data['product'] != null) {
@@ -31,8 +34,11 @@ class OpenFoodFactsService {
       'json': '1',
       'page_size': '20',
     });
+    final headers = {
+      'User-Agent': 'kCaliApp/1.0.0 (tony@example.com) Flutter/Isar'
+    };
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: headers);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['products'] != null) {

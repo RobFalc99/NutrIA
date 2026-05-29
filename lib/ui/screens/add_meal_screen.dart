@@ -51,6 +51,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
   final _customCarbController = TextEditingController();
   final _customFatController = TextEditingController();
   final _customFibController = TextEditingController();
+  final _savedSearchController = TextEditingController();
   bool _saveOnline = true;
 
   @override
@@ -107,6 +108,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     _customCarbController.dispose();
     _customFatController.dispose();
     _customFibController.dispose();
+    _savedSearchController.dispose();
     super.dispose();
   }
 
@@ -592,7 +594,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
                 ),
-                child: const Text('Web', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                child: const Text('Cerca 🔍', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -621,7 +623,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                               Icon(Icons.search_off, size: 48, color: Colors.white24),
                               SizedBox(height: 10),
                               Text(
-                                'Cerca per nome o marca\noppure premi "Web" per cercare su OpenFoodFacts.',
+                                'Cerca per nome o marca.\nPremi Enter o il tasto "Cerca 🔍" per cercare su internet.',
                                 style: TextStyle(color: Colors.white30, fontSize: 13),
                                 textAlign: TextAlign.center,
                               ),
@@ -665,6 +667,16 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (food.isCustom && food.id != 'online_1' && food.id != 'online_2') ...[
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.white30, size: 20),
+                tooltip: 'Elimina',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => _deleteFood(food),
+              ),
+              const SizedBox(width: 8),
+            ],
             // Tasto Info
             IconButton(
               icon: Icon(Icons.info_outline, color: accentColor.withOpacity(0.7), size: 20),
@@ -1334,25 +1346,101 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
     );
   }
 
+  void _deleteFood(Food food) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Elimina Alimento', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Text('Sei sicuro di voler eliminare "${food.name}" dai tuoi alimenti salvati?', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla', style: TextStyle(color: Colors.white54, fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final appState = context.read<AppState>();
+              await appState.deleteCustomFood(food.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"${food.name}" eliminato dai salvati'),
+                    backgroundColor: const Color(0xFFFF007F),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Elimina', style: TextStyle(color: Color(0xFFFF007F), fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // TAB 6: SALVATI
   Widget _buildSavedTab(Color cyan, Color pink) {
     final appState = context.watch<AppState>();
-    final list = appState.customFoods;
+    final customFoods = appState.customFoods;
+    final savedQuery = _savedSearchController.text.trim().toLowerCase();
+    
+    final list = savedQuery.isEmpty
+        ? customFoods
+        : customFoods.where((food) => food.name.toLowerCase().contains(savedQuery)).toList();
 
-    if (list.isEmpty) {
-      return const Center(
-        child: Text(
-          'Nessun alimento salvato.\nPremi "Salva" nel dialogo di aggiunta per salvarli qui.',
-          style: TextStyle(color: Colors.white30, fontSize: 13),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: list.length,
-      itemBuilder: (context, index) => _buildFoodListTile(list[index], cyan),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (customFoods.isNotEmpty) ...[
+            TextField(
+              controller: _savedSearchController,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              onChanged: (val) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Cerca tra i salvati...',
+                hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 18),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.03),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                suffixIcon: _savedSearchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
+                        onPressed: () {
+                          _savedSearchController.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: list.isEmpty
+                ? Center(
+                    child: Text(
+                      customFoods.isEmpty
+                          ? 'Nessun alimento salvato.\nPremi "Salva" nel dialogo di aggiunta per salvarli qui.'
+                          : 'Nessun risultato trovato nei tuoi cibi salvati.',
+                      style: const TextStyle(color: Colors.white30, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: list.length,
+                    itemBuilder: (context, index) => _buildFoodListTile(list[index], cyan),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

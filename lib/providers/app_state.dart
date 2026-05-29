@@ -156,6 +156,21 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // Elimina un cibo personalizzato ed aggiorna la lista locale in-memory
+  Future<void> deleteCustomFood(String foodId) async {
+    isLoadingOnline = true;
+    notifyListeners();
+    try {
+      await onlineService.deleteCustomFood(foodId);
+      _customFoods = await onlineService.getCustomFoods();
+    } catch (e) {
+      print('Errore eliminazione cibo online: $e');
+    } finally {
+      isLoadingOnline = false;
+      notifyListeners();
+    }
+  }
+
   // Salva una ricetta online
   Future<void> saveCustomMeal(Meal meal) async {
     isLoadingOnline = true;

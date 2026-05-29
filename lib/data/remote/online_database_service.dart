@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
 import '../../domain/models.dart';
 
 class OnlineDatabaseService {
@@ -32,15 +35,141 @@ class OnlineDatabaseService {
   // Database in-memory simulato per i pasti (ricette preconfigurate)
   static final List<Meal> _mockOnlineMeals = [];
 
-  /// Recupera tutti gli alimenti personali salvati in cloud
+  bool _loaded = false;
+
+  Future<void> _ensureLoaded() async {
+    if (_loaded) return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final foodsFile = File('${dir.path}/custom_foods.json');
+      if (await foodsFile.exists()) {
+        final content = await foodsFile.readAsString();
+        final List<dynamic> decoded = json.decode(content);
+        final loadedFoods = decoded.map((item) {
+          return Food(
+            id: item['id'] as String,
+            name: item['name'] as String,
+            brand: item['brand'] as String?,
+            caloriesPer100g: (item['caloriesPer100g'] as num).toDouble(),
+            proteinsPer100g: (item['proteinsPer100g'] as num).toDouble(),
+            carbsPer100g: (item['carbsPer100g'] as num).toDouble(),
+            fatsPer100g: (item['fatsPer100g'] as num).toDouble(),
+            fibersPer100g: (item['fibersPer100g'] as num).toDouble(),
+            isCustom: true,
+            isOnline: true,
+          );
+        }).toList();
+        
+        for (final food in loadedFoods) {
+          if (!_mockOnlineFoods.any((f) => f.id == food.id)) {
+            _mockOnlineFoods.add(food);
+          }
+        }
+      }
+      
+      final mealsFile = File('${dir.path}/custom_meals.json');
+      if (await mealsFile.exists()) {
+        final content = await mealsFile.readAsString();
+        final List<dynamic> decoded = json.decode(content);
+        final loadedMeals = decoded.map((item) {
+          final itemsList = (item['items'] as List).map((i) {
+            final foodMap = i['food'];
+            return MealItem(
+              food: Food(
+                id: foodMap['id'] as String,
+                name: foodMap['name'] as String,
+                brand: foodMap['brand'] as String?,
+                caloriesPer100g: (foodMap['caloriesPer100g'] as num).toDouble(),
+                proteinsPer100g: (foodMap['proteinsPer100g'] as num).toDouble(),
+                carbsPer100g: (foodMap['carbsPer100g'] as num).toDouble(),
+                fatsPer100g: (foodMap['fatsPer100g'] as num).toDouble(),
+                fibersPer100g: (foodMap['fibersPer100g'] as num).toDouble(),
+                isCustom: foodMap['isCustom'] as bool? ?? true,
+                isOnline: foodMap['isOnline'] as bool? ?? true,
+              ),
+              amountGrams: (i['amountGrams'] as num).toDouble(),
+            );
+          }).toList();
+          return Meal(
+            id: item['id'] as String,
+            name: item['name'] as String,
+            items: itemsList,
+            isCustomOnline: true,
+          );
+        }).toList();
+        
+        for (final meal in loadedMeals) {
+          if (!_mockOnlineMeals.any((m) => m.id == meal.id)) {
+            _mockOnlineMeals.add(meal);
+          }
+        }
+      }
+      _loaded = true;
+    } catch (e) {
+      print('Errore caricamento dati persistenti: $e');
+    }
+  }
+
+  Future<void> _saveFoodsToDisk() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final foodsFile = File('${dir.path}/custom_foods.json');
+      final list = _mockOnlineFoods.map((f) => {
+        'id': f.id,
+        'name': f.name,
+        'brand': f.brand,
+        'caloriesPer100g': f.caloriesPer100g,
+        'proteinsPer100g': f.proteinsPer100g,
+        'carbsPer100g': f.carbsPer100g,
+        'fatsPer100g': f.fatsPer100g,
+        'fibersPer100g': f.fibersPer100g,
+      }).toList();
+      await foodsFile.writeAsString(json.encode(list));
+    } catch (e) {
+      print('Errore salvataggio cibi su disco: $e');
+    }
+  }
+
+  Future<void> _saveMealsToDisk() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final mealsFile = File('${dir.path}/custom_meals.json');
+      final list = _mockOnlineMeals.map((m) => {
+        'id': m.id,
+        'name': m.name,
+        'items': m.items.map((i) => {
+          'amountGrams': i.amountGrams,
+          'food': {
+            'id': i.food.id,
+            'name': i.food.name,
+            'brand': i.food.brand,
+            'caloriesPer100g': i.food.caloriesPer100g,
+            'proteinsPer100g': i.food.proteinsPer100g,
+            'carbsPer100g': i.food.carbsPer100g,
+            'fatsPer100g': i.food.fatsPer100g,
+            'fibersPer100g': i.food.fibersPer100g,
+            'isCustom': i.food.isCustom,
+            'isOnline': i.food.isOnline,
+          }
+        }).toList()
+      }).toList();
+      await mealsFile.writeAsString(json.encode(list));
+    } catch (e) {
+      print('Errore salvataggio ricette su disco: $e');
+    }
+  }
+
+  /// Recupera tutti gli alimenti personali salvati in cloud / locale
   Future<List<Food>> getCustomFoods() async {
+    await _ensureLoaded();
     // Simula ritardo di rete (HTTP call)
     await Future.delayed(const Duration(milliseconds: 600));
     return List.from(_mockOnlineFoods);
   }
 
-  /// Salva un nuovo alimento personale in cloud
+  /// Salva un nuovo alimento personale in cloud / locale
   Future<bool> saveCustomFood(Food food) async {
+    await _ensureLoaded();
     await Future.delayed(const Duration(milliseconds: 800));
     final onlineFood = Food(
       id: food.id.startsWith('online_') ? food.id : 'online_${DateTime.now().millisecondsSinceEpoch}',
@@ -55,17 +184,32 @@ class OnlineDatabaseService {
       isOnline: true,
     );
     _mockOnlineFoods.add(onlineFood);
+    await _saveFoodsToDisk();
+    return true;
+  }
+
+  /// Elimina un alimento personale (preimpostati esclusi)
+  Future<bool> deleteCustomFood(String foodId) async {
+    if (foodId == 'online_1' || foodId == 'online_2') {
+      throw Exception('Non è consentito cancellare gli alimenti preimpostati.');
+    }
+    await _ensureLoaded();
+    await Future.delayed(const Duration(milliseconds: 500));
+    _mockOnlineFoods.removeWhere((f) => f.id == foodId);
+    await _saveFoodsToDisk();
     return true;
   }
 
   /// Recupera i pasti personali salvati in cloud (es. ricette composte)
   Future<List<Meal>> getCustomMeals() async {
+    await _ensureLoaded();
     await Future.delayed(const Duration(milliseconds: 600));
     return List.from(_mockOnlineMeals);
   }
 
-  /// Salva un pasto composto (ricetta) in cloud
+  /// Salva un pasto composto (ricetta) in cloud / locale
   Future<bool> saveCustomMeal(Meal meal) async {
+    await _ensureLoaded();
     await Future.delayed(const Duration(milliseconds: 800));
     final onlineMeal = Meal(
       id: 'meal_online_${DateTime.now().millisecondsSinceEpoch}',
@@ -74,6 +218,7 @@ class OnlineDatabaseService {
       isCustomOnline: true,
     );
     _mockOnlineMeals.add(onlineMeal);
+    await _saveMealsToDisk();
     return true;
   }
 }

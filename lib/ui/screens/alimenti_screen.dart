@@ -29,6 +29,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   // Tab Cerca
   final _searchController = TextEditingController();
+  final _myFoodsSearchController = TextEditingController();
   List<Food> _searchResults = [];
   bool _isSearching = false;
 
@@ -138,6 +139,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     _speechToText.stop();
     _tabController.dispose();
     _searchController.dispose();
+    _myFoodsSearchController.dispose();
     _singleFoodAiController.dispose();
     _singleFoodGramsController.dispose();
     super.dispose();
@@ -566,7 +568,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
                 ),
-                child: const Text('Web', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                child: const Text('Cerca 🔍', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -595,7 +597,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                               Icon(Icons.search_off, size: 48, color: Colors.white24),
                               SizedBox(height: 10),
                               Text(
-                                'Cerca per nome o marca\noppure premi "Web" per cercare su OpenFoodFacts.',
+                                'Cerca per nome o marca.\nPremi Enter o il tasto "Cerca 🔍" per cercare su internet.',
                                 style: TextStyle(color: Colors.white30, fontSize: 13),
                                 textAlign: TextAlign.center,
                               ),
@@ -801,12 +803,52 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     );
   }
 
+  void _deleteFood(Food food) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: bgCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Elimina Alimento', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Text('Sei sicuro di voler eliminare "${food.name}" dai tuoi alimenti salvati?', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla', style: TextStyle(color: Colors.white54, fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final appState = context.read<AppState>();
+              await appState.deleteCustomFood(food.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"${food.name}" eliminato dai salvati'),
+                    backgroundColor: accentPink,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Elimina', style: TextStyle(color: accentPink, fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- TAB 3: I MIEI ALIMENTI (DETTAGLI E STRUMENTI) ---
   Widget _buildMyFoodsTab() {
     final appState = context.watch<AppState>();
 
     // Recupera la lista di alimenti personali (customFoods) dell'utente
     final customFoods = appState.customFoods;
+    final myFoodsQuery = _myFoodsSearchController.text.trim().toLowerCase();
+
+    final filteredCustomFoods = myFoodsQuery.isEmpty
+        ? customFoods
+        : customFoods.where((food) => food.name.toLowerCase().contains(myFoodsQuery)).toList();
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -877,17 +919,46 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
           const Text('Alimenti Salvati / Dettagli Personali:', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
 
+          if (customFoods.isNotEmpty) ...[
+            TextField(
+              controller: _myFoodsSearchController,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              onChanged: (val) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Cerca tra i salvati...',
+                hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 18),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.03),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                suffixIcon: _myFoodsSearchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
+                        onPressed: () {
+                          _myFoodsSearchController.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           Expanded(
-            child: customFoods.isEmpty
+            child: filteredCustomFoods.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.folder_open, size: 48, color: Colors.white.withOpacity(0.1)),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Nessun alimento personale salvato.\nSalva un alimento da Cerca o AI per vederlo qui.',
-                          style: TextStyle(color: Colors.white38, fontSize: 12),
+                        Text(
+                          customFoods.isEmpty
+                              ? 'Nessun alimento personale salvato.\nSalva un alimento da Cerca o AI per vederlo qui.'
+                              : 'Nessun risultato trovato nei tuoi cibi salvati.',
+                          style: const TextStyle(color: Colors.white38, fontSize: 12),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -895,9 +966,10 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                   )
                 : ListView.builder(
                     physics: const BouncingScrollPhysics(),
-                    itemCount: customFoods.length,
+                    itemCount: filteredCustomFoods.length,
                     itemBuilder: (context, index) {
-                      final food = customFoods[index];
+                      final food = filteredCustomFoods[index];
+                      final isPreset = food.id == 'online_1' || food.id == 'online_2';
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
@@ -923,6 +995,11 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                                 icon: const Icon(Icons.add_circle, color: accentPink, size: 20),
                                 onPressed: () => _showAddQuantityDialog(food),
                               ),
+                              if (!isPreset)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.white30, size: 20),
+                                  onPressed: () => _deleteFood(food),
+                                ),
                             ],
                           ),
                         ),
