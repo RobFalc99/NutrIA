@@ -165,12 +165,15 @@ class OnlineDatabaseService {
     return List.from(_mockOnlineFoods);
   }
 
-  /// Salva un nuovo alimento personale in cloud / locale
+  /// Salva o modifica un alimento personale in cloud / locale
   Future<bool> saveCustomFood(Food food) async {
     await _ensureLoaded();
     await Future.delayed(const Duration(milliseconds: 800));
+    final isExisting = food.id.startsWith('online_');
+    final finalId = isExisting ? food.id : 'online_${DateTime.now().millisecondsSinceEpoch}';
+    
     final onlineFood = Food(
-      id: food.id.startsWith('online_') ? food.id : 'online_${DateTime.now().millisecondsSinceEpoch}',
+      id: finalId,
       name: food.name,
       brand: food.brand,
       caloriesPer100g: food.caloriesPer100g,
@@ -181,6 +184,10 @@ class OnlineDatabaseService {
       isCustom: true,
       isOnline: true,
     );
+
+    if (isExisting) {
+      _mockOnlineFoods.removeWhere((f) => f.id == finalId);
+    }
     _mockOnlineFoods.add(onlineFood);
     await _saveFoodsToDisk();
     return true;

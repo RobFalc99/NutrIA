@@ -401,6 +401,8 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   void _showAddQuantityDialog(Food food, {bool showSaveFavorite = true}) {
     double amount = 100.0;
     final textController = TextEditingController(text: '100');
+    final nameController = TextEditingController(text: food.name);
+    final brandController = TextEditingController(text: food.brand ?? '');
 
     showDialog(
       context: context,
@@ -417,18 +419,9 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
               backgroundColor: bgCard,
               insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    food.name,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  if (food.brand != null && food.brand!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(food.brand!, style: const TextStyle(color: Colors.white54, fontSize: 13)),
-                  ],
-                ],
+              title: const Text(
+                'Inserimento Alimento',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -436,9 +429,33 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     TextField(
+                      controller: nameController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        labelText: 'Nome Alimento',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.03),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: brandController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        labelText: 'Marca / Brand',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.03),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
                       controller: textController,
                       keyboardType: TextInputType.number,
-                      autofocus: true,
+                      autofocus: false,
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       decoration: InputDecoration(
                         labelText: 'Quantità (g)',
@@ -489,8 +506,30 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                     if (showSaveFavorite)
                       TextButton.icon(
                         onPressed: () {
+                          final finalName = nameController.text.trim();
+                          if (finalName.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Inserisci un nome per l\'alimento'), backgroundColor: accentPink, behavior: SnackBarBehavior.floating),
+                            );
+                            return;
+                          }
+                          final finalBrand = brandController.text.trim().isEmpty ? null : brandController.text.trim();
+                          
+                          final updatedFood = Food(
+                            id: food.id,
+                            name: finalName,
+                            brand: finalBrand,
+                            caloriesPer100g: food.caloriesPer100g,
+                            proteinsPer100g: food.proteinsPer100g,
+                            carbsPer100g: food.carbsPer100g,
+                            fatsPer100g: food.fatsPer100g,
+                            fibersPer100g: food.fibersPer100g,
+                            isCustom: food.isCustom,
+                            isOnline: food.isOnline,
+                          );
+
                           final appState = context.read<AppState>();
-                          appState.saveCustomFood(food);
+                          appState.saveCustomFood(updatedFood);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Alimento salvato nei tuoi alimenti!'),
@@ -506,7 +545,29 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                       const SizedBox.shrink(),
                     ElevatedButton(
                       onPressed: amount <= 0 ? null : () {
-                        _showSelectMealAndAddPopup(food, amount);
+                        final finalName = nameController.text.trim();
+                        if (finalName.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Inserisci un nome per l\'alimento'), backgroundColor: accentPink, behavior: SnackBarBehavior.floating),
+                          );
+                          return;
+                        }
+                        final finalBrand = brandController.text.trim().isEmpty ? null : brandController.text.trim();
+                        
+                        final updatedFood = Food(
+                          id: food.id,
+                          name: finalName,
+                          brand: finalBrand,
+                          caloriesPer100g: food.caloriesPer100g,
+                          proteinsPer100g: food.proteinsPer100g,
+                          carbsPer100g: food.carbsPer100g,
+                          fatsPer100g: food.fatsPer100g,
+                          fibersPer100g: food.fibersPer100g,
+                          isCustom: food.isCustom,
+                          isOnline: food.isOnline,
+                        );
+
+                        _showSelectMealAndAddPopup(updatedFood, amount);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accentPink,
@@ -1128,6 +1189,155 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     );
   }
 
+  void _showEditFoodDialog(Food food) {
+    final nomeController = TextEditingController(text: food.name);
+    final marcaController = TextEditingController(text: food.brand ?? '');
+    final kcalController = TextEditingController(text: food.caloriesPer100g.toStringAsFixed(1));
+    final protController = TextEditingController(text: food.proteinsPer100g.toStringAsFixed(1));
+    final carbController = TextEditingController(text: food.carbsPer100g.toStringAsFixed(1));
+    final fatController = TextEditingController(text: food.fatsPer100g.toStringAsFixed(1));
+    final fibController = TextEditingController(text: food.fibersPer100g.toStringAsFixed(1));
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: bgCard,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Row(
+            children: [
+              Icon(Icons.edit_rounded, color: accentCyan, size: 24),
+              SizedBox(width: 8),
+              Text('Modifica Alimento', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: nomeController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: _buildManualInputDecoration('Nome Alimento'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: marcaController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: _buildManualInputDecoration('Marca - opzionale'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: kcalController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: _buildManualInputDecoration('Kcal per 100g'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: protController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: _buildManualInputDecoration('Pro (g) / 100g'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: carbController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: _buildManualInputDecoration('Carb (g) / 100g'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: fatController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: _buildManualInputDecoration('Grass (g) / 100g'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: fibController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: _buildManualInputDecoration('Fibre (g) per 100g - opzionale'),
+                ),
+              ],
+            ),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annulla', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final nome = nomeController.text.trim();
+                if (nome.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Inserisci almeno il nome dell\'alimento'), backgroundColor: accentPink, behavior: SnackBarBehavior.floating),
+                  );
+                  return;
+                }
+
+                final kcal = double.tryParse(kcalController.text) ?? 0.0;
+                final prot = double.tryParse(protController.text) ?? 0.0;
+                final carb = double.tryParse(carbController.text) ?? 0.0;
+                final fat = double.tryParse(fatController.text) ?? 0.0;
+                final fib = double.tryParse(fibController.text) ?? 0.0;
+
+                final appState = context.read<AppState>();
+                final customFood = Food(
+                  id: food.id,
+                  name: nome,
+                  brand: marcaController.text.trim().isEmpty ? null : marcaController.text.trim(),
+                  caloriesPer100g: kcal,
+                  proteinsPer100g: prot,
+                  carbsPer100g: carb,
+                  fatsPer100g: fat,
+                  fibersPer100g: fib,
+                  isCustom: true,
+                );
+
+                appState.saveCustomFood(customFood);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('"$nome" modificato con successo!'), behavior: SnackBarBehavior.floating),
+                );
+
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentCyan,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              child: const Text('Salva', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   InputDecoration _buildManualInputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -1720,6 +1930,11 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_rounded, color: accentCyan, size: 18),
+                                onPressed: () => _showEditFoodDialog(food),
+                                tooltip: 'Modifica alimento',
+                              ),
                               IconButton(
                                 icon: const Icon(Icons.info_outline, color: accentCyan, size: 20),
                                 onPressed: () => _showFoodInfoSheet(food),
