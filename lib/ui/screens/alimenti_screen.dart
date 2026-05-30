@@ -567,7 +567,21 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                           isOnline: food.isOnline,
                         );
 
-                        _showSelectMealAndAddPopup(updatedFood, amount);
+                        if (widget.initialMealTarget != null) {
+                          final appState = context.read<AppState>();
+                          appState.addMealItem(widget.initialMealTarget!, updatedFood, amount);
+                          
+                          Navigator.pop(context); // Chiude il quantitativo
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${updatedFood.name} (${amount.toInt()}g) aggiunto a ${widget.initialMealTarget}!'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } else {
+                          _showSelectMealAndAddPopup(updatedFood, amount);
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accentPink,
@@ -1069,35 +1083,63 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: nomeController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: _buildManualInputDecoration('Nome alimento (es. Petto di pollo)'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Nome Alimento', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: nomeController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: _buildManualInputDecoration('Nome alimento (es. Petto di pollo)'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: marcaController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: _buildManualInputDecoration('Marca (es. AIA, Coop) - opzionale'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Marca', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: marcaController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: _buildManualInputDecoration('Marca (es. AIA, Coop) - opzionale'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: kcalController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Kcal per 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Kcal / 100g', style: TextStyle(color: accentCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: kcalController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Kcal per 100g'),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: TextField(
-                        controller: protController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Pro (g) / 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Proteine / 100g', style: TextStyle(color: accentPink, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: protController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Pro (g) / 100g'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1106,30 +1148,51 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: carbController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Carb (g) / 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Carboidrati / 100g', style: TextStyle(color: Color(0xFFFFD700), fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: carbController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Carb (g) / 100g'),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: TextField(
-                        controller: fatController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Grass (g) / 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Grassi / 100g', style: TextStyle(color: Color(0xFF00E676), fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: fatController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Grass (g) / 100g'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: fibController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: _buildManualInputDecoration('Fibre (g) per 100g - opzionale'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Fibre / 100g', style: TextStyle(color: Colors.cyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: fibController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: _buildManualInputDecoration('Fibre (g) per 100g - opzionale'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1176,12 +1239,19 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                 );
 
                 Navigator.pop(context);
+
+                if (widget.initialMealTarget != null) {
+                  _showAddQuantityDialog(customFood, showSaveFavorite: false);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentCyan,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Salva', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              child: Text(
+                widget.initialMealTarget != null ? 'Salva e Aggiungi' : 'Salva',
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );
@@ -1217,35 +1287,63 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: nomeController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: _buildManualInputDecoration('Nome Alimento'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Nome Alimento', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: nomeController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: _buildManualInputDecoration('Nome alimento'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: marcaController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: _buildManualInputDecoration('Marca - opzionale'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Marca', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: marcaController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: _buildManualInputDecoration('Marca - opzionale'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: kcalController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Kcal per 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Kcal / 100g', style: TextStyle(color: accentCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: kcalController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Kcal'),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: TextField(
-                        controller: protController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Pro (g) / 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Proteine / 100g', style: TextStyle(color: accentPink, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: protController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Pro (g)'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1254,30 +1352,51 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: carbController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Carb (g) / 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Carboidrati / 100g', style: TextStyle(color: Color(0xFFFFD700), fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: carbController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Carb (g)'),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: TextField(
-                        controller: fatController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _buildManualInputDecoration('Grass (g) / 100g'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Grassi / 100g', style: TextStyle(color: Color(0xFF00E676), fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: fatController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('Grass (g)'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: fibController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: _buildManualInputDecoration('Fibre (g) per 100g - opzionale'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Fibre / 100g', style: TextStyle(color: Colors.cyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: fibController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: _buildManualInputDecoration('Fibre (g)'),
+                    ),
+                  ],
                 ),
               ],
             ),

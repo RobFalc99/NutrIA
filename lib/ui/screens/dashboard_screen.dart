@@ -904,7 +904,7 @@ class AddMealOptionsSheet extends StatelessWidget {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => WholeMealAiDialog(defaultMeal: defaultMeal),
+                  builder: (context) => WholeMealAiDialog(defaultMeal: defaultMeal, isMealFixed: true),
                 );
               },
             ),
@@ -972,8 +972,13 @@ class AddMealOptionsSheet extends StatelessWidget {
 
 class WholeMealAiDialog extends StatefulWidget {
   final String defaultMeal;
+  final bool isMealFixed;
 
-  const WholeMealAiDialog({super.key, required this.defaultMeal});
+  const WholeMealAiDialog({
+    super.key,
+    required this.defaultMeal,
+    this.isMealFixed = false,
+  });
 
   @override
   State<WholeMealAiDialog> createState() => _WholeMealAiDialogState();
@@ -1294,39 +1299,51 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
               ),
             ] else ...[
               // Pasto Selector and Input Text
-              Row(
-                children: [
-                  const Text('Inserisci pasto in:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.06)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedMeal,
-                          dropdownColor: const Color(0xFF16161D),
-                          style: const TextStyle(color: accentCyan, fontWeight: FontWeight.bold),
-                          items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini']
-                              .map((name) => DropdownMenuItem(value: name, child: Text(name)))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() {
-                                _selectedMeal = val;
-                              });
-                            }
-                          },
+              if (widget.isMealFixed)
+                Row(
+                  children: [
+                    const Icon(Icons.lunch_dining, color: accentCyan, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Pasto: $_selectedMeal',
+                      style: const TextStyle(color: accentCyan, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    const Text('Inserisci pasto in:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withOpacity(0.06)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedMeal,
+                            dropdownColor: const Color(0xFF16161D),
+                            style: const TextStyle(color: accentCyan, fontWeight: FontWeight.bold),
+                            items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini']
+                                .map((name) => DropdownMenuItem(value: name, child: Text(name)))
+                                .toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _selectedMeal = val;
+                                });
+                              }
+                            },
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               const SizedBox(height: 16),
               const Text('Foto del pasto (opzionale):', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 8),
