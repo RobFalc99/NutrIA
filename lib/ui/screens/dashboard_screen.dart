@@ -262,29 +262,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Row(
           children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/logo.png',
+                height: 32,
+                width: 32,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 8),
             const Text(
-              'k',
+              'NutrIA',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
                 fontSize: 22,
                 letterSpacing: 0,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: accentCyan.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'Cali',
-                style: TextStyle(
-                  color: accentCyan,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  letterSpacing: 0.5,
-                ),
               ),
             ),
           ],

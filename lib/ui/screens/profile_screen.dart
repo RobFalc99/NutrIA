@@ -341,7 +341,7 @@ class _ProfileFormState extends State<ProfileForm> {
               decoration: BoxDecoration(
                 color: const Color(0xFF1C1C24),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
+                border: Border.all(color: Colors.white.withAlpha((0.04 * 255).toInt())),
               ),
               child: Row(
                 children: [
@@ -349,9 +349,9 @@ class _ProfileFormState extends State<ProfileForm> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.03),
+                      color: Colors.white.withAlpha((0.03 * 255).toInt()),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF00FFC2).withOpacity(0.3), width: 1.5),
+                      border: Border.all(color: const Color(0xFF00FFC2).withAlpha((0.3 * 255).toInt()), width: 1.5),
                       image: const DecorationImage(
                         image: AssetImage('assets/benvenuto.png'),
                         fit: BoxFit.contain,
@@ -395,14 +395,14 @@ class _ProfileFormState extends State<ProfileForm> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: hasStreak
-                          ? [const Color(0xFFFF6B00).withOpacity(0.18), const Color(0xFFFFD700).withOpacity(0.08)]
-                          : [Colors.white.withOpacity(0.03), Colors.white.withOpacity(0.01)],
+                          ? [const Color(0xFFFF6B00).withAlpha((0.18 * 255).toInt()), const Color(0xFFFFD700).withAlpha((0.08 * 255).toInt())]
+                          : [Colors.white.withAlpha((0.03 * 255).toInt()), Colors.white.withAlpha((0.01 * 255).toInt())],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: hasStreak ? const Color(0xFFFF6B00).withOpacity(0.3) : Colors.white.withOpacity(0.06),
+                      color: hasStreak ? const Color(0xFFFF6B00).withAlpha((0.3 * 255).toInt()) : Colors.white.withAlpha((0.06 * 255).toInt()),
                     ),
                   ),
                   child: Row(
@@ -441,9 +441,9 @@ class _ProfileFormState extends State<ProfileForm> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF6B00).withOpacity(0.15),
+                            color: const Color(0xFFFF6B00).withAlpha((0.15 * 255).toInt()),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFFF6B00).withOpacity(0.3)),
+                            border: Border.all(color: const Color(0xFFFF6B00).withAlpha((0.3 * 255).toInt())),
                           ),
                           child: Text(
                             '🔥$streak',
@@ -468,12 +468,12 @@ class _ProfileFormState extends State<ProfileForm> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [const Color(0xFF00FFC2).withOpacity(0.08), const Color(0xFFFF007F).withOpacity(0.04)],
+                    colors: [const Color(0xFF00FFC2).withAlpha((0.08 * 255).toInt()), const Color(0xFFFF007F).withAlpha((0.04 * 255).toInt())],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  border: Border.all(color: Colors.white.withAlpha((0.08 * 255).toInt())),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,7 +488,7 @@ class _ProfileFormState extends State<ProfileForm> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.06),
+                            color: Colors.white.withAlpha((0.06 * 255).toInt()),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -508,9 +508,9 @@ class _ProfileFormState extends State<ProfileForm> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.03),
+                          color: Colors.white.withAlpha((0.03 * 255).toInt()),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white.withOpacity(0.06)),
+                          border: Border.all(color: Colors.white.withAlpha((0.06 * 255).toInt())),
                         ),
                         child: Row(
                           children: [
@@ -532,9 +532,9 @@ class _ProfileFormState extends State<ProfileForm> {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
+                                color: Colors.white.withAlpha((0.04 * 255).toInt()),
                                 borderRadius: BorderRadius.circular(15),
-                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                border: Border.all(color: Colors.white.withAlpha((0.05 * 255).toInt())),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,9 +558,9 @@ class _ProfileFormState extends State<ProfileForm> {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
+                                color: Colors.white.withAlpha((0.04 * 255).toInt()),
                                 borderRadius: BorderRadius.circular(15),
-                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                border: Border.all(color: Colors.white.withAlpha((0.05 * 255).toInt())),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -885,7 +885,7 @@ class _ProfileFormState extends State<ProfileForm> {
               decoration: BoxDecoration(
                 color: const Color(0xFF1C1C24),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withAlpha((0.05 * 255).toInt())),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -956,7 +956,7 @@ class _ModeChip extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isOn ? const Color(0xFF00FFC2).withOpacity(0.15) : const Color(0xFF1C1C24),
+            color: isOn ? const Color(0xFF00FFC2).withAlpha((0.15 * 255).toInt()) : const Color(0xFF1C1C24),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isOn ? const Color(0xFF00FFC2) : Colors.white12,

@@ -30,13 +30,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AppState(isar)),
       ],
-      child: const KCaliApp(),
+      child: const NutrIAApp(),
     ),
   );
 }
 
-class KCaliApp extends StatelessWidget {
-  const KCaliApp({super.key});
+class NutrIAApp extends StatelessWidget {
+  const NutrIAApp({super.key});
 
   @override
   Widget build(BuildContext context) {
