@@ -1,5 +1,9 @@
 # NutrIA 🍎📱
 
+<p align="center">
+  <img src="assets/logo.png" alt="NutrIA Logo" width="180"/>
+</p>
+
 **NutrIA** è un'applicazione Flutter avanzata per il tracciamento dei nutrienti e delle calorie, progettata per offrire un'esperienza utente premium, reattiva e supportata dall'intelligenza artificiale (Google Gemini). L'app unisce la precisione del tracciamento manuale alla velocità dell'IA, consentendo di registrare interi pasti o giornate con una sola frase o foto.
 
 ---
