@@ -72,6 +72,19 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     }
   }
 
+  @override
+  void didUpdateWidget(AlimentiScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      // Screen became active, unfocus any active inputs/buttons to avoid keyboard or tooltip/focus overlays
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          FocusManager.instance.primaryFocus?.unfocus();
+        }
+      });
+    }
+  }
+
   void _showLoadingDialog(BuildContext context, String message) {
     showDialog(
       context: context,
@@ -872,76 +885,87 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
           }
         });
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          FocusManager.instance.primaryFocus?.unfocus();
+        }
+      });
     }
     final hasMealTarget = widget.initialMealTarget != null;
 
-    return Scaffold(
-      backgroundColor: bgDark,
-      appBar: AppBar(
-        title: const Text(
-          'Sezione Alimenti 🍎',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: bgDark,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: accentCyan,
-          unselectedLabelColor: Colors.white38,
-          indicatorColor: accentCyan,
-          tabs: const [
-            Tab(icon: Icon(Icons.bookmark), text: 'Salvati'),
-            Tab(icon: Icon(Icons.language), text: 'Web'),
-            Tab(icon: Icon(Icons.add_circle), text: 'Nuovo'),
-            Tab(icon: Icon(Icons.history), text: 'Cronologia'),
-          ],
-        ),
+    return TooltipTheme(
+      data: const TooltipThemeData(
+        waitDuration: Duration(days: 365),
+        showDuration: Duration.zero,
       ),
-      body: Column(
-        children: [
-          if (hasMealTarget)
-            Container(
-              color: accentPink.withValues(alpha: 0.1),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              child: Row(
+      child: Scaffold(
+        backgroundColor: bgDark,
+        appBar: AppBar(
+          title: const Text(
+            'Sezione Alimenti 🍎',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          backgroundColor: bgDark,
+          elevation: 0,
+          bottom: TabBar(
+            controller: _tabController,
+            labelColor: accentCyan,
+            unselectedLabelColor: Colors.white38,
+            indicatorColor: accentCyan,
+            tabs: const [
+              Tab(icon: Icon(Icons.bookmark), text: 'Salvati'),
+              Tab(icon: Icon(Icons.language), text: 'Web'),
+              Tab(icon: Icon(Icons.add_circle), text: 'Nuovo'),
+              Tab(icon: Icon(Icons.history), text: 'Cronologia'),
+            ],
+          ),
+        ),
+        body: Column(
+          children: [
+            if (hasMealTarget)
+              Container(
+                color: accentPink.withValues(alpha: 0.1),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.restaurant_menu, color: accentPink, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Inserimento in corso per: ',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      widget.initialMealTarget!,
+                      style: const TextStyle(color: accentCyan, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: accentPink.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        widget.initialMealTarget!.toUpperCase(),
+                        style: const TextStyle(color: accentPink, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
                 children: [
-                  const Icon(Icons.restaurant_menu, color: accentPink, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Inserimento in corso per: ',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                  Text(
-                    widget.initialMealTarget!,
-                    style: const TextStyle(color: accentCyan, fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: accentPink.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      widget.initialMealTarget!.toUpperCase(),
-                      style: const TextStyle(color: accentPink, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                    ),
-                  ),
+                  _buildMyFoodsTab(),
+                  _buildSearchTab(),
+                  _buildNewFoodTab(),
+                  _buildHistoryTab(),
                 ],
               ),
             ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildMyFoodsTab(),
-                _buildSearchTab(),
-                _buildNewFoodTab(),
-                _buildHistoryTab(),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2190,7 +2214,6 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                               IconButton(
                                 icon: const Icon(Icons.edit_rounded, color: accentCyan, size: 18),
                                 onPressed: () => _showEditFoodDialog(food),
-                                tooltip: 'Modifica alimento',
                               ),
                               IconButton(
                                 icon: const Icon(Icons.info_outline, color: accentCyan, size: 20),
