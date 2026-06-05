@@ -20,6 +20,8 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   bool _isAddMenuOpen = false;
+  bool _startupActionDone = false;
+  bool _externalActionExecuted = false;
   
   // Istanza QuickActions per shortcut su icona app
   final QuickActions _quickActions = const QuickActions();
@@ -30,6 +32,37 @@ class _MainScreenState extends State<MainScreen> {
     _requestInitialPermissions();
     _setupQuickActions();
     _setupWidgetChannel();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final appState = Provider.of<AppState>(context);
+    if (appState.currentUser != null && !_startupActionDone) {
+      _startupActionDone = true;
+      
+      // Aspettiamo un attimo per dare il tempo a QuickActions e Widget channel di eseguirsi
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (!mounted) return;
+        if (_externalActionExecuted) return;
+        
+        final startup = appState.currentUser!.startupScreen;
+        if (startup == 'alimenti') {
+          setState(() {
+            _currentIndex = 1;
+          });
+        } else if (startup == 'pasto_ia') {
+          setState(() {
+            _currentIndex = 0;
+          });
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const WholeMealAiDialog(defaultMeal: 'Tutta la giornata'),
+          );
+        }
+      });
+    }
   }
 
   Future<void> _requestInitialPermissions() async {
@@ -48,6 +81,8 @@ class _MainScreenState extends State<MainScreen> {
   void _setupQuickActions() {
     // Gestione dei tap sui collegamenti rapidi dell'icona
     _quickActions.initialize((String type) {
+      if (!mounted) return;
+      _externalActionExecuted = true;
       if (type == 'action_manual') {
         final hour = DateTime.now().hour;
         String defaultMeal = 'Colazione';
@@ -137,6 +172,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _handleWidgetAction(String action) {
     if (!mounted) return;
+    _externalActionExecuted = true;
     final appState = Provider.of<AppState>(context, listen: false);
     
     if (action == 'add_water') {

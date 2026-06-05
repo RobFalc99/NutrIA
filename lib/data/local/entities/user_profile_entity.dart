@@ -24,5 +24,8 @@ class UserProfileEntity {
   String? geminiApiKey; // La chiave API fornita dall'utente
   String? geminiModel; // Modello Gemini selezionato dall'utente
   int historyLimit = 100; // Limite elementi in cronologia
+  String startupScreen = 'home'; // 'home', 'alimenti', 'pasto_ia'
+  int defaultAlimentiTab = 0; // 0: Salvati, 1: Web, 2: Nuovo, 3: Cronologia
 }
+
 

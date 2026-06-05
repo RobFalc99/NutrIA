@@ -21,6 +21,7 @@ class AlimentiScreen extends StatefulWidget {
 class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _openFoodFactsService = OpenFoodFactsService();
+  bool _tabIndexInitialized = false;
 
   // Colori Premium Neon Dark
   static const accentCyan = Color(0xFF00FFC2);
@@ -849,6 +850,15 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    if (appState.currentUser != null && !_tabIndexInitialized) {
+      _tabIndexInitialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _tabController.index = appState.currentUser!.defaultAlimentiTab;
+        }
+      });
+    }
     final hasMealTarget = widget.initialMealTarget != null;
 
     return Scaffold(
