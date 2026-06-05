@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
-        android:label="kCali"
+        android:label="NutrIA"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -35,7 +35,7 @@
         <receiver
             android:name=".KCaliWidgetProvider"
             android:exported="true"
-            android:label="kCali - Diario">
+            android:label="NutrIA - Diario">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -48,7 +48,7 @@
         <receiver
             android:name=".KCaliCalorieWidgetProvider"
             android:exported="true"
-            android:label="kCali - Calorie">
+            android:label="NutrIA - Calorie">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -61,7 +61,7 @@
         <receiver
             android:name=".KCaliWaterWidgetProvider"
             android:exported="true"
-            android:label="kCali - Acqua">
+            android:label="NutrIA - Acqua">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

@@ -9,7 +9,7 @@ class OpenFoodFactsService {
   Future<Food?> getProductByBarcode(String barcode) async {
     final url = Uri.parse('$_baseUrl/api/v0/product/$barcode.json');
     final headers = {
-      'User-Agent': 'kCaliApp/1.0.0 (tony@example.com) Flutter/Isar'
+      'User-Agent': 'NutrIAApp/1.0.0 (tony@example.com) Flutter/Isar'
     };
     try {
       final response = await http.get(url, headers: headers);
@@ -31,7 +31,7 @@ class OpenFoodFactsService {
     if (searchTerms.isEmpty) return [];
 
     final headers = {
-      'User-Agent': 'kCaliApp/1.0.0 (tony@example.com) Flutter/Isar',
+      'User-Agent': 'NutrIAApp/1.0.0 (tony@example.com) Flutter/Isar',
       'Accept': 'application/json',
     };
 

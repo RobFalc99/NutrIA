@@ -328,8 +328,8 @@ class _MainScreenState extends State<MainScreen> {
               Icon(Icons.info_outline, color: _accentCyan, size: 24),
               SizedBox(width: 12),
               Text(
-                'Guida Funzionalità kCali 💡',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                'Guida Funzionalità NutrIA 💡',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),

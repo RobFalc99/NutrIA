@@ -1,6 +1,6 @@
-# kCali (KCALcolatore) 🍎📱
+# NutrIA 🍎📱
 
-**kCali** è un'applicazione Flutter avanzata per il tracciamento dei nutrienti e delle calorie, progettata per offrire un'esperienza utente premium, reattiva e supportata dall'intelligenza artificiale (Google Gemini). L'app unisce la precisione del tracciamento manuale alla velocità dell'IA, consentendo di registrare interi pasti o giornate con una sola frase o foto.
+**NutrIA** è un'applicazione Flutter avanzata per il tracciamento dei nutrienti e delle calorie, progettata per offrire un'esperienza utente premium, reattiva e supportata dall'intelligenza artificiale (Google Gemini). L'app unisce la precisione del tracciamento manuale alla velocità dell'IA, consentendo di registrare interi pasti o giornate con una sola frase o foto.
 
 ---
 

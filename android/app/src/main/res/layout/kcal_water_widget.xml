@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="kCali Idratazione"
+        android:text="NutrIA Idratazione"
         android:textColor="#FF33B5E5"
         android:textSize="12sp"
         android:textStyle="bold"

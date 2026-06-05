@@ -43,7 +43,7 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
 fi
 
 echo -e "${CYAN}==========================================${NC}"
-echo -e "${CYAN}   KCALcolatore Automation Pipeline (Linux)${NC}"
+echo -e "${CYAN}   NutrIA Automation Pipeline (Linux)${NC}"
 echo -e "${CYAN}==========================================${NC}"
 echo -e "${DARKGRAY}Working directory: $(pwd)${NC}"
 
@@ -83,7 +83,7 @@ apk_size=$(du -h "$apk_path" | cut -f1)
 echo -e "${GREEN}[OK] APK compilato con successo! ($apk_size)${NC}"
 
 # Copia in path temporaneo
-temp_apk="/tmp/KCALcolatore_upload_temp.apk"
+temp_apk="/tmp/NutrIA_upload_temp.apk"
 cp "$apk_path" "$temp_apk"
 echo -e "${DARKGRAY}APK copiato in path temporaneo: $temp_apk${NC}"
 
@@ -92,8 +92,8 @@ echo -e "\n${YELLOW}[3/3] Pubblicazione su GitHub Release... [UPLOAD]${NC}"
 
 timestamp=$(date +'%Y%m%dd-%H%M%S')
 version="v$(date +'%Y.%m.%d')-$(date +'%H%M%S')"
-release_name="KCALcolatore $version"
-file_name="KCALcolatore-$timestamp.apk"
+release_name="NutrIA $version"
+file_name="NutrIA-$timestamp.apk"
 
 # Commit e push del codice corrente
 echo -e "${WHITE}Commit e push del codice su GitHub...${NC}"
