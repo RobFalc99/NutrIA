@@ -26,6 +26,7 @@ class UserProfileEntity {
   int historyLimit = 100; // Limite elementi in cronologia
   String startupScreen = 'home'; // 'home', 'alimenti', 'pasto_ia'
   int defaultAlimentiTab = 0; // 0: Salvati, 1: Web, 2: Nuovo, 3: Cronologia
+  String languageCode = 'en'; // 'en', 'it'
 }
 
 

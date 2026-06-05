@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../data/local/entities/user_profile_entity.dart';
+import '../../providers/translations.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -49,6 +50,7 @@ class _ProfileFormState extends State<ProfileForm> {
   late int _historyLimit;
   late String _startupScreen;
   late int _defaultAlimentiTab;
+  late String _languageCode;
   bool _obscureApiKey = true;
 
   bool _isDirty = false;
@@ -67,6 +69,7 @@ class _ProfileFormState extends State<ProfileForm> {
     final historyLimitVal = _historyLimit;
     final startupScreenVal = _startupScreen;
     final defaultAlimentiTabVal = _defaultAlimentiTab;
+    final languageVal = _languageCode;
 
     final user = widget.user;
     final bool dirty = nameVal != user.name ||
@@ -81,7 +84,8 @@ class _ProfileFormState extends State<ProfileForm> {
         modelVal != user.geminiModel ||
         historyLimitVal != user.historyLimit ||
         startupScreenVal != user.startupScreen ||
-        defaultAlimentiTabVal != user.defaultAlimentiTab;
+        defaultAlimentiTabVal != user.defaultAlimentiTab ||
+        languageVal != user.languageCode;
 
     if (dirty != _isDirty) {
       setState(() {
@@ -113,6 +117,7 @@ class _ProfileFormState extends State<ProfileForm> {
     _historyLimit = widget.user.historyLimit;
     _startupScreen = widget.user.startupScreen;
     _defaultAlimentiTab = widget.user.defaultAlimentiTab;
+    _languageCode = widget.user.languageCode;
 
     _proteinsController.addListener(_updateCalculatedGoalCalories);
     _carbsController.addListener(_updateCalculatedGoalCalories);
@@ -209,6 +214,11 @@ class _ProfileFormState extends State<ProfileForm> {
           _defaultAlimentiTab = widget.user.defaultAlimentiTab;
         });
       }
+      if (_languageCode != widget.user.languageCode) {
+        setState(() {
+          _languageCode = widget.user.languageCode;
+        });
+      }
       _checkIfDirty();
     }
   }
@@ -245,16 +255,17 @@ class _ProfileFormState extends State<ProfileForm> {
       ..geminiModel = _selectedModel
       ..historyLimit = _historyLimit
       ..startupScreen = _startupScreen
-      ..defaultAlimentiTab = _defaultAlimentiTab;
+      ..defaultAlimentiTab = _defaultAlimentiTab
+      ..languageCode = _languageCode;
     appState.updateProfile(profile);
     setState(() {
       _isDirty = false;
     });
     appState.isProfileDirty = false;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profilo salvato!'),
-        backgroundColor: Color(0xFF00FFC2),
+      SnackBar(
+        content: Text(context.tr('Profilo salvato!')),
+        backgroundColor: const Color(0xFF00FFC2),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -278,22 +289,44 @@ class _ProfileFormState extends State<ProfileForm> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'Profilo & Impostazioni',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        title: Text(
+          context.tr('Profilo & Impostazioni'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _languageCode,
+              dropdownColor: const Color(0xFF1C1C24),
+              icon: const Icon(Icons.language, color: Color(0xFF00FFC2)),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              items: const [
+                DropdownMenuItem(value: 'en', child: Text('EN  ')),
+                DropdownMenuItem(value: 'it', child: Text('IT  ')),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _languageCode = val;
+                  });
+                  _checkIfDirty();
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
           TextButton(
             onPressed: _save,
-            child: const Text(
-              'SALVA',
-              style: TextStyle(
+            child: Text(
+              context.tr('SALVA'),
+              style: const TextStyle(
                 color: Color(0xFF00FFC2),
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),
             ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Form(
@@ -336,7 +369,9 @@ class _ProfileFormState extends State<ProfileForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              hasStreak ? '$streak ${streak == 1 ? 'giorno' : 'giorni'} di streak!' : 'Inizia il tuo streak oggi!',
+                              hasStreak 
+                                  ? '$streak ${streak == 1 ? context.tr('giorno di streak!') : context.tr('giorni di streak!')}' 
+                                  : context.tr('Inizia il tuo streak oggi!'),
                               style: TextStyle(
                                 color: hasStreak ? const Color(0xFFFFD700) : Colors.white54,
                                 fontWeight: FontWeight.bold,
@@ -346,8 +381,8 @@ class _ProfileFormState extends State<ProfileForm> {
                             const SizedBox(height: 4),
                             Text(
                               hasStreak
-                                  ? 'Stai tracciando i tuoi pasti ogni giorno 💪'
-                                  : 'Registra almeno un pasto per iniziare',
+                                  ? context.tr('Stai tracciando i tuoi pasti ogni giorno 💪')
+                                  : context.tr('Registra almeno un pasto per iniziare'),
                               style: const TextStyle(color: Colors.white38, fontSize: 12),
                             ),
                           ],
@@ -397,9 +432,9 @@ class _ProfileFormState extends State<ProfileForm> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Analisi Settimanale 80/20',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        Text(
+                          context.tr('Analisi Settimanale 80/20'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -408,16 +443,16 @@ class _ProfileFormState extends State<ProfileForm> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '${stats.trackedDays.length}/7 Giorni Tracciati',
+                            '${stats.trackedDays.length}/7 ${context.tr('Giorni Tracciati')}',
                             style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Media ultimi 7 giorni (escluso oggi). Le medie escludono i Cheat Days.',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    Text(
+                      context.tr('Media ultimi 7 giorni (escluso oggi). Le medie escludono i Cheat Days.'),
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                     const SizedBox(height: 16),
                     if (!appState.hasEnoughDataForAverage) ...[
@@ -428,14 +463,14 @@ class _ProfileFormState extends State<ProfileForm> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: Colors.white.withOpacity(0.06)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.hourglass_empty, color: Colors.white38, size: 20),
-                            SizedBox(width: 10),
+                            const Icon(Icons.hourglass_empty, color: Colors.white38, size: 20),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Dati insufficienti — registra almeno 7 giorni per vedere le medie.',
-                                style: TextStyle(color: Colors.white38, fontSize: 12),
+                                context.tr('Dati insufficienti — registra almeno 7 giorni per vedere le medie.'),
+                                style: const TextStyle(color: Colors.white38, fontSize: 12),
                               ),
                             ),
                           ],
@@ -455,7 +490,7 @@ class _ProfileFormState extends State<ProfileForm> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Calorie Medie', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  Text(context.tr('Calorie Medie'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
                                   const SizedBox(height: 4),
                                   Text(
                                     '${stats.averageCalories.toInt()} kcal',
@@ -481,7 +516,7 @@ class _ProfileFormState extends State<ProfileForm> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Proteine Medie', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  Text(context.tr('Proteine Medie'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
                                   const SizedBox(height: 4),
                                   Text(
                                     '${stats.averageProteins.toInt()} g',
@@ -505,7 +540,7 @@ class _ProfileFormState extends State<ProfileForm> {
             const SizedBox(height: 20),
 
             // ── Modalità tracciamento ────────────────────────────────────────
-            const _SectionTitle(title: 'Modalita\' di Tracciamento'),
+            _SectionTitle(title: context.tr('Modalita\' di Tracciamento')),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -519,40 +554,40 @@ class _ProfileFormState extends State<ProfileForm> {
             const SizedBox(height: 24),
 
             // ── Dati utente ──────────────────────────────────────────────────
-            const _SectionTitle(title: 'Dati Utente'),
+            _SectionTitle(title: context.tr('Dati Utente')),
             const SizedBox(height: 10),
-            _Field(label: 'Nome', controller: _nameController, icon: Icons.person),
+            _Field(label: context.tr('Nome'), controller: _nameController, icon: Icons.person),
             const SizedBox(height: 12),
-            _Field(label: 'Calorie obiettivo (kcal)', controller: _caloriesController, icon: Icons.local_fire_department, numeric: true, suffix: 'kcal'),
+            _Field(label: context.tr('Calorie obiettivo (kcal)'), controller: _caloriesController, icon: Icons.local_fire_department, numeric: true, suffix: 'kcal'),
             const SizedBox(height: 12),
-            _Field(label: 'Proteine (g)', controller: _proteinsController, icon: Icons.fitness_center, numeric: true, suffix: 'g'),
+            _Field(label: context.tr('Proteine (g)'), controller: _proteinsController, icon: Icons.fitness_center, numeric: true, suffix: 'g'),
 
             if (_trackingMode != 'light') ...[
               const SizedBox(height: 12),
-              _Field(label: 'Carboidrati (g)', controller: _carbsController, icon: Icons.restaurant, numeric: numericKeyboardType(), suffix: 'g'),
+              _Field(label: context.tr('Carboidrati (g)'), controller: _carbsController, icon: Icons.restaurant, numeric: numericKeyboardType(), suffix: 'g'),
               const SizedBox(height: 12),
-              _Field(label: 'Grassi (g)', controller: _fatsController, icon: Icons.water_drop, numeric: true, suffix: 'g'),
+              _Field(label: context.tr('Grassi (g)'), controller: _fatsController, icon: Icons.water_drop, numeric: true, suffix: 'g'),
             ],
 
             if (_trackingMode == 'custom') ...[
               const SizedBox(height: 12),
-              _Field(label: 'Fibre (g)', controller: _fibersController, icon: Icons.grass, numeric: true, suffix: 'g'),
+              _Field(label: context.tr('Fibre (g)'), controller: _fibersController, icon: Icons.grass, numeric: true, suffix: 'g'),
             ],
             const SizedBox(height: 24),
 
             // ── Regola 80/20 ─────────────────────────────────────────────────
-            const _SectionTitle(title: 'Regola 80/20'),
+            _SectionTitle(title: context.tr('Regola 80/20')),
             const SizedBox(height: 10),
             _ToggleCard(
-              title: 'Abilita modalita\' 80/20',
-              subtitle: 'I giorni non tracciati vengono esclusi dalle medie settimanali.',
+              title: context.tr('Abilita modalita\' 80/20'),
+              subtitle: context.tr('I giorni non tracciati vengono escluse dalle medie settimanali.'),
               value: _use8020Mode,
               onChanged: (v) => setState(() => _use8020Mode = v),
             ),
             const SizedBox(height: 24),
 
             // ── Gemini API ───────────────────────────────────────────────────
-            const _SectionTitle(title: 'Chiave API Gemini (AI)'),
+            _SectionTitle(title: context.tr('Chiave API Gemini (AI)')),
             const SizedBox(height: 10),
             TextFormField(
               controller: _apiKeyController,
@@ -582,14 +617,14 @@ class _ProfileFormState extends State<ProfileForm> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Salvata solo sul dispositivo. Usata per le funzioni AI.',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
+            Text(
+              context.tr('Salvata solo sul dispositivo. Usata per le funzioni AI.'),
+              style: const TextStyle(color: Colors.white38, fontSize: 11),
             ),
             const SizedBox(height: 16),
 
             // ── Modello IA ───────────────────────────────────────────────────
-            const _SectionTitle(title: 'Modello IA Selezionato'),
+            _SectionTitle(title: context.tr('Modello IA Selezionato')),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               value: _selectedModel,
@@ -597,7 +632,7 @@ class _ProfileFormState extends State<ProfileForm> {
               dropdownColor: const Color(0xFF1C1C24),
               isExpanded: true,
               decoration: InputDecoration(
-                labelText: 'Seleziona Modello IA',
+                labelText: context.tr('Seleziona Modello IA'),
                 labelStyle: const TextStyle(color: Colors.white54),
                 prefixIcon: const Icon(Icons.settings_suggest, color: Color(0xFF00FFC2)),
                 filled: true,
@@ -653,7 +688,7 @@ class _ProfileFormState extends State<ProfileForm> {
             const SizedBox(height: 16),
 
             // ── Limite Cronologia ──────────────────────────────────────────────
-            const _SectionTitle(title: 'Limite Cronologia Alimenti'),
+            _SectionTitle(title: context.tr('Limite Cronologia Alimenti')),
             const SizedBox(height: 10),
             DropdownButtonFormField<int>(
               value: _historyLimit,
@@ -661,7 +696,7 @@ class _ProfileFormState extends State<ProfileForm> {
               dropdownColor: const Color(0xFF1C1C24),
               isExpanded: true,
               decoration: InputDecoration(
-                labelText: 'Limite Cronologia',
+                labelText: context.tr('Limite Cronologia'),
                 labelStyle: const TextStyle(color: Colors.white54),
                 prefixIcon: const Icon(Icons.history, color: Color(0xFF00FFC2)),
                 filled: true,
@@ -675,12 +710,12 @@ class _ProfileFormState extends State<ProfileForm> {
                   borderSide: const BorderSide(color: Color(0xFF00FFC2)),
                 ),
               ),
-              items: const [
-                DropdownMenuItem(value: 50, child: Text('50 elementi')),
-                DropdownMenuItem(value: 100, child: Text('100 elementi (Predefinito)')),
-                DropdownMenuItem(value: 200, child: Text('200 elementi')),
-                DropdownMenuItem(value: 500, child: Text('500 elementi')),
-                DropdownMenuItem(value: 1000, child: Text('1000 elementi')),
+              items: [
+                DropdownMenuItem(value: 50, child: Text('50 ' + context.tr('elementi'))),
+                DropdownMenuItem(value: 100, child: Text('100 ' + context.tr('elementi (Predefinito)'))),
+                DropdownMenuItem(value: 200, child: Text('200 ' + context.tr('elementi'))),
+                DropdownMenuItem(value: 500, child: Text('500 ' + context.tr('elementi'))),
+                DropdownMenuItem(value: 1000, child: Text('1000 ' + context.tr('elementi'))),
               ],
               onChanged: (val) {
                 if (val != null) {
@@ -694,7 +729,7 @@ class _ProfileFormState extends State<ProfileForm> {
             const SizedBox(height: 16),
 
             // ── Schermata di Avvio ──────────────────────────────────────────────
-            const _SectionTitle(title: 'Schermata di Avvio'),
+            _SectionTitle(title: context.tr('Schermata di Avvio')),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               value: _startupScreen,
@@ -702,7 +737,7 @@ class _ProfileFormState extends State<ProfileForm> {
               dropdownColor: const Color(0xFF1C1C24),
               isExpanded: true,
               decoration: InputDecoration(
-                labelText: 'Schermata iniziale',
+                labelText: context.tr('Schermata iniziale'),
                 labelStyle: const TextStyle(color: Colors.white54),
                 prefixIcon: const Icon(Icons.launch, color: Color(0xFF00FFC2)),
                 filled: true,
@@ -716,10 +751,10 @@ class _ProfileFormState extends State<ProfileForm> {
                   borderSide: const BorderSide(color: Color(0xFF00FFC2)),
                 ),
               ),
-              items: const [
-                DropdownMenuItem(value: 'home', child: Text('Dashboard (Home)')),
-                DropdownMenuItem(value: 'alimenti', child: Text('Sezione Alimenti')),
-                DropdownMenuItem(value: 'pasto_ia', child: Text('Aggiungi Pasto con IA')),
+              items: [
+                DropdownMenuItem(value: 'home', child: Text('Dashboard (${context.tr('Home')})')),
+                DropdownMenuItem(value: 'alimenti', child: Text(context.tr('Alimenti'))),
+                DropdownMenuItem(value: 'pasto_ia', child: Text(context.tr('Pasto IA'))),
               ],
               onChanged: (val) {
                 if (val != null) {
@@ -734,7 +769,7 @@ class _ProfileFormState extends State<ProfileForm> {
 
             if (_startupScreen == 'alimenti') ...[
               // ── Scheda Alimenti di Default ────────────────────────────────────────
-              const _SectionTitle(title: 'Scheda Alimenti Predefinita'),
+              _SectionTitle(title: context.tr('Scheda Alimenti Predefinita')),
               const SizedBox(height: 10),
               DropdownButtonFormField<int>(
                 value: _defaultAlimentiTab,
@@ -742,7 +777,7 @@ class _ProfileFormState extends State<ProfileForm> {
                 dropdownColor: const Color(0xFF1C1C24),
                 isExpanded: true,
                 decoration: InputDecoration(
-                  labelText: 'Scheda iniziale alimenti',
+                  labelText: context.tr('Scheda iniziale alimenti'),
                   labelStyle: const TextStyle(color: Colors.white54),
                   prefixIcon: const Icon(Icons.tab, color: Color(0xFF00FFC2)),
                   filled: true,
@@ -756,11 +791,11 @@ class _ProfileFormState extends State<ProfileForm> {
                     borderSide: const BorderSide(color: Color(0xFF00FFC2)),
                   ),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 0, child: Text('Salvati')),
-                  DropdownMenuItem(value: 1, child: Text('Web (Ricerca)')),
-                  DropdownMenuItem(value: 2, child: Text('Nuovo (Inserimento)')),
-                  DropdownMenuItem(value: 3, child: Text('Cronologia')),
+                items: [
+                  DropdownMenuItem(value: 0, child: Text(context.tr('Salvati'))),
+                  DropdownMenuItem(value: 1, child: Text(context.tr('Web (Ricerca)'))),
+                  DropdownMenuItem(value: 2, child: Text(context.tr('Nuovo (Inserimento)'))),
+                  DropdownMenuItem(value: 3, child: Text(context.tr('Cronologia'))),
                 ],
                 onChanged: (val) {
                   if (val != null) {
@@ -785,13 +820,49 @@ class _ProfileFormState extends State<ProfileForm> {
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text(
-                    'Salva Configurazione',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  child: Text(
+                    context.tr('Salva Configurazione'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ),
             ],
+            // ── Feedback & Support ──────────────────────────────────────────
+            const SizedBox(height: 32),
+            _SectionTitle(title: context.tr('Feedback & Supporto')),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C24),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('Hai suggerimenti o hai riscontrato un problema? Contattami a:'),
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 8),
+                  const Row(
+                    children: [
+                      Icon(Icons.email_outlined, color: Color(0xFF00FFC2), size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'robsfalc+nutria@gmail.com',
+                        style: TextStyle(
+                          color: Color(0xFF00FFC2),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 40),
           ],
         ),

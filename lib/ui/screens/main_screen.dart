@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
+import '../../providers/translations.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'alimenti_screen.dart';
@@ -179,7 +180,7 @@ class _MainScreenState extends State<MainScreen> {
       appState.addWaterMl(250);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Acqua registrata con successo! 💧 +250ml'),
+          content: Text(context.tr('Acqua registrata con successo! 💧 +250ml')),
           backgroundColor: const Color(0xFF00FFC2),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -189,7 +190,7 @@ class _MainScreenState extends State<MainScreen> {
       appState.addWaterMl(500);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Acqua registrata con successo! 💧 +500ml'),
+          content: Text(context.tr('Acqua registrata con successo! 💧 +500ml')),
           backgroundColor: const Color(0xFF00FFC2),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -256,20 +257,19 @@ class _MainScreenState extends State<MainScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: _bgCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: _accentPink, size: 24),
-              SizedBox(width: 12),
+              const Icon(Icons.warning_amber_rounded, color: _accentPink, size: 24),
+              const SizedBox(width: 12),
               Text(
-                'Modifiche non salvate ⚠️',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                context.tr('Modifiche non salvate ⚠️'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),
-          content: const Text(
-            'Ci sono modifiche non salvate nel tuo profilo. Vuoi salvare prima di uscire, uscire senza salvare o annullare?',
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          content: Text(
+            context.tr('Ci sono modifiche non salvate nel tuo profilo. Vuoi salvare prima di uscire, uscire senza salvare o annullare?'),
+            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
           ),
           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           actions: [
@@ -283,13 +283,13 @@ class _MainScreenState extends State<MainScreen> {
                   _isAddMenuOpen = false;
                 });
               },
-              child: const Text('Esci senza salvare', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              child: Text(context.tr('Esci senza salvare'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text('Annulla', style: TextStyle(color: _accentCyan, fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text(context.tr('Annulla'), style: const TextStyle(color: _accentCyan, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -308,7 +308,7 @@ class _MainScreenState extends State<MainScreen> {
                 backgroundColor: _accentPink,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('Salva ed esci', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              child: Text(context.tr('Salva ed esci'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ],
         );
@@ -323,12 +323,12 @@ class _MainScreenState extends State<MainScreen> {
         return AlertDialog(
           backgroundColor: _bgCard,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.info_outline, color: _accentCyan, size: 24),
-              SizedBox(width: 12),
+              const Icon(Icons.info_outline, color: _accentCyan, size: 24),
+              const SizedBox(width: 12),
               Text(
-                'Guida Funzionalità NutrIA 💡',
+                context.tr('Guida Funzionalità NutrIA 💡'),
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
@@ -339,30 +339,30 @@ class _MainScreenState extends State<MainScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildGuideSection(
-                  title: '1. Inserimento Pasti con IA 🪄',
-                  description:
-                      'Fotografa il tuo piatto o descrivilo testualmente (es. "pasta corta con salsa, un uovo sodo"). L\'IA Gemini scompone gli alimenti stimando quantità e macro riferiti a 100g.',
+                  title: context.tr('1. Inserimento Pasti con IA 🪄'),
+                  description: context.tr(
+                      'Fotografa il tuo piatto o descrivilo testualmente (es. "pasta corta con salsa, un uovo sodo"). L\'IA Gemini scompone gli alimenti stimando quantità e macro riferiti a 100g.'),
                   color: _accentCyan,
                 ),
                 const SizedBox(height: 14),
                 _buildGuideSection(
-                  title: '2. Scannerizzazione Barcode Avanzata 📷',
-                  description:
-                      'Inquadra il codice a barre per scansionarlo. Se il rilevamento automatico fallisce, scatta una foto al codice: Gemini Vision ne estrarrà i numeri per interrogare OpenFoodFacts.',
+                  title: context.tr('2. Scannerizzazione Barcode Avanzata 📷'),
+                  description: context.tr(
+                      'Inquadra il codice a barre per scansionarlo. Se il rilevamento automatico fallisce, scatta una foto al codice: Gemini Vision ne estrarrà i numeri per interrogare OpenFoodFacts.'),
                   color: _accentPink,
                 ),
                 const SizedBox(height: 14),
                 _buildGuideSection(
-                  title: '3. Scannerizzazione Tabella Nutrizionale 🔍',
-                  description:
-                      'Fai una foto alla tabella dei valori nutrizionali sul retro di qualsiasi confezione. L\'IA estrarrà automaticamente tutti i macronutrienti per 100g precompilando la scheda!',
+                  title: context.tr('3. Scannerizzazione Tabella Nutrizionale 🔍'),
+                  description: context.tr(
+                      'Fai una foto alla tabella dei valori nutrizionali sul retro di qualsiasi confezione. L\'IA estrarrà automaticamente tutti i macronutrienti per 100g precompilando la scheda!'),
                   color: Colors.orangeAccent,
                 ),
                 const SizedBox(height: 14),
                 _buildGuideSection(
-                  title: '4. Sezione Alimenti & Storico 📊',
-                  description:
-                      'Gli alimenti aggiunti sono memorizzati nella scheda "I Miei Alimenti" per un inserimento rapido. Configura la tua API Key Gemini dal tuo Profilo per abilitare le elaborazioni visive.',
+                  title: context.tr('4. Sezione Alimenti & Storico 📊'),
+                  description: context.tr(
+                      'Gli alimenti aggiunti sono memorizzati nella scheda "I Miei Alimenti" per un inserimento rapido. Configura la tua API Key Gemini dal tuo Profilo per abilitare le elaborazioni visive.'),
                   color: Colors.blueAccent,
                 ),
               ],
@@ -375,7 +375,7 @@ class _MainScreenState extends State<MainScreen> {
                 backgroundColor: _accentCyan,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Ho capito', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              child: Text(context.tr('Ho capito'), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
             ),
           ],
         );

@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../providers/app_state.dart';
+import '../../providers/translations.dart';
 import '../../data/local/entities/daily_log_entity.dart';
 import '../../domain/models.dart';
 
@@ -28,9 +29,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     
     final cleanDate = DateTime(date.year, date.month, date.day);
     
-    if (cleanDate == today) return 'Oggi';
-    if (cleanDate == yesterday) return 'Ieri';
-    if (cleanDate == tomorrow) return 'Domani';
+    if (cleanDate == today) return context.tr('Oggi');
+    if (cleanDate == yesterday) return context.tr('Ieri');
+    if (cleanDate == tomorrow) return context.tr('Domani');
     
     final weekdays = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
     final months = [
@@ -38,7 +39,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
     ];
     
-    return '${weekdays[date.weekday - 1]} ${date.day} ${months[date.month - 1]}';
+    return '${context.tr(weekdays[date.weekday - 1])} ${date.day} ${context.tr(months[date.month - 1])}';
   }
 
   // Mostra il foglio modale con le opzioni di aggiunta

@@ -77,23 +77,28 @@ const UserProfileEntitySchema = CollectionSchema(
       name: r'historyLimit',
       type: IsarType.long,
     ),
-    r'name': PropertySchema(
+    r'languageCode': PropertySchema(
       id: 12,
+      name: r'languageCode',
+      type: IsarType.string,
+    ),
+    r'name': PropertySchema(
+      id: 13,
       name: r'name',
       type: IsarType.string,
     ),
     r'startupScreen': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'startupScreen',
       type: IsarType.string,
     ),
     r'trackingMode': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'trackingMode',
       type: IsarType.string,
     ),
     r'use8020Mode': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'use8020Mode',
       type: IsarType.bool,
     )
@@ -130,6 +135,7 @@ int _userProfileEntityEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.languageCode.length * 3;
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.startupScreen.length * 3;
   bytesCount += 3 + object.trackingMode.length * 3;
@@ -154,10 +160,11 @@ void _userProfileEntitySerialize(
   writer.writeDouble(offsets[9], object.goalProteins);
   writer.writeDouble(offsets[10], object.heightCm);
   writer.writeLong(offsets[11], object.historyLimit);
-  writer.writeString(offsets[12], object.name);
-  writer.writeString(offsets[13], object.startupScreen);
-  writer.writeString(offsets[14], object.trackingMode);
-  writer.writeBool(offsets[15], object.use8020Mode);
+  writer.writeString(offsets[12], object.languageCode);
+  writer.writeString(offsets[13], object.name);
+  writer.writeString(offsets[14], object.startupScreen);
+  writer.writeString(offsets[15], object.trackingMode);
+  writer.writeBool(offsets[16], object.use8020Mode);
 }
 
 UserProfileEntity _userProfileEntityDeserialize(
@@ -180,10 +187,11 @@ UserProfileEntity _userProfileEntityDeserialize(
   object.heightCm = reader.readDouble(offsets[10]);
   object.historyLimit = reader.readLong(offsets[11]);
   object.id = id;
-  object.name = reader.readString(offsets[12]);
-  object.startupScreen = reader.readString(offsets[13]);
-  object.trackingMode = reader.readString(offsets[14]);
-  object.use8020Mode = reader.readBool(offsets[15]);
+  object.languageCode = reader.readString(offsets[12]);
+  object.name = reader.readString(offsets[13]);
+  object.startupScreen = reader.readString(offsets[14]);
+  object.trackingMode = reader.readString(offsets[15]);
+  object.use8020Mode = reader.readBool(offsets[16]);
   return object;
 }
 
@@ -225,6 +233,8 @@ P _userProfileEntityDeserializeProp<P>(
     case 14:
       return (reader.readString(offset)) as P;
     case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1322,6 +1332,142 @@ extension UserProfileEntityQueryFilter
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'languageCode',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'languageCode',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'languageCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      languageCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'languageCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
       nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1916,6 +2062,20 @@ extension UserProfileEntityQuerySortBy
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      sortByLanguageCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      sortByLanguageCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
       sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -2155,6 +2315,20 @@ extension UserProfileEntityQuerySortThenBy
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      thenByLanguageCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      thenByLanguageCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
       thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -2297,6 +2471,13 @@ extension UserProfileEntityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QDistinct>
+      distinctByLanguageCode({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'languageCode', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<UserProfileEntity, UserProfileEntity, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2413,6 +2594,13 @@ extension UserProfileEntityQueryProperty
       historyLimitProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'historyLimit');
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, String, QQueryOperations>
+      languageCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'languageCode');
     });
   }
 
