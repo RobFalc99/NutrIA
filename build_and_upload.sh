@@ -67,6 +67,11 @@ echo -e "${GREEN}[OK] Test completati con successo!${NC}"
 echo -e "\n${YELLOW}[2/3] Compilazione Release APK... [BUILD]${NC}"
 echo -e "${DARKGRAY}       (Questo potrebbe richiedere alcuni minuti...)${NC}"
 
+# Pulizia preventiva cache CMake e build precedenti
+echo -e "${DARKGRAY}Pulizia cache CMake e build precedenti...${NC}"
+rm -rf "$SCRIPT_DIR/android/app/.cxx" 2>/dev/null || true
+flutter clean --quiet 2>/dev/null || true
+
 flutter build apk --release
 if [ $? -ne 0 ]; then
     echo -e "${RED}[ERRORE] La compilazione dell'APK è fallita!${NC}"
