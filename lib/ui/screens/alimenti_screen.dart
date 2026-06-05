@@ -13,7 +13,8 @@ import 'add_meal_screen.dart'; // Per riutilizzare BarcodeScannerScreen
 
 class AlimentiScreen extends StatefulWidget {
   final String? initialMealTarget;
-  const AlimentiScreen({super.key, this.initialMealTarget});
+  final bool isActive;
+  const AlimentiScreen({super.key, this.initialMealTarget, this.isActive = true});
 
   @override
   State<AlimentiScreen> createState() => _AlimentiScreenState();
@@ -861,13 +862,16 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    if (appState.currentUser != null && !_tabIndexInitialized) {
+    if (widget.isActive && appState.currentUser != null && !_tabIndexInitialized) {
       _tabIndexInitialized = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _tabController.index = appState.currentUser!.defaultAlimentiTab;
-        }
-      });
+      final targetIndex = appState.currentUser!.defaultAlimentiTab;
+      if (_tabController.index != targetIndex) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _tabController.index = targetIndex;
+          }
+        });
+      }
     }
     final hasMealTarget = widget.initialMealTarget != null;
 

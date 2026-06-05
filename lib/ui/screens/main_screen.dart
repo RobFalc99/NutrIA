@@ -21,7 +21,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  bool _isAddMenuOpen = false;
   bool _startupActionDone = false;
   bool _externalActionExecuted = false;
   
@@ -99,7 +98,6 @@ class _MainScreenState extends State<MainScreen> {
       } else if (type == 'action_alimenti') {
         setState(() {
           _currentIndex = 1; // Sposta alla tab Alimenti
-          _isAddMenuOpen = false;
         });
       } else if (type == 'action_ia') {
         final hour = DateTime.now().hour;
@@ -228,15 +226,9 @@ class _MainScreenState extends State<MainScreen> {
 
   static const _accentCyan = Color(0xFF00FFC2);
   static const _accentPink = Color(0xFFFF007F);
-  static const _bgDark = Color(0xFF0F0F13);
   static const _bgCard = Color(0xFF16161D);
 
-  // IndexedStack mantiene le tab sempre montate in memoria.
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    AlimentiScreen(),
-    ProfileScreen(),
-  ];
+  // Le tab vengono costruite dinamicamente nel build per passare lo stato corretto di attivazione.
 
   void _onTabTapped(int index) {
     HapticFeedback.lightImpact();
@@ -246,7 +238,6 @@ class _MainScreenState extends State<MainScreen> {
     } else {
       setState(() {
         _currentIndex = index;
-        _isAddMenuOpen = false; // Chiude il menu se si cambia tab
       });
     }
   }
@@ -281,7 +272,6 @@ class _MainScreenState extends State<MainScreen> {
                 appState.isProfileDirty = false;
                 setState(() {
                   _currentIndex = targetIndex;
-                  _isAddMenuOpen = false;
                 });
               },
               child: Text(context.tr('Esci senza salvare'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
@@ -302,7 +292,6 @@ class _MainScreenState extends State<MainScreen> {
                 appState.isProfileDirty = false;
                 setState(() {
                   _currentIndex = targetIndex;
-                  _isAddMenuOpen = false;
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -415,7 +404,11 @@ class _MainScreenState extends State<MainScreen> {
       backgroundColor: context.bgPrimary,
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: [
+          const DashboardScreen(),
+          AlimentiScreen(isActive: _currentIndex == 1),
+          const ProfileScreen(),
+        ],
       ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
