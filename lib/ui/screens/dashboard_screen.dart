@@ -123,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 6,
-                    children: [30, 50, 100, 150, 200, 250].map((g) => ActionChip(
+                    children: [5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) => ActionChip(
                       label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
                       backgroundColor: Colors.white.withOpacity(0.06),
                       padding: EdgeInsets.zero,

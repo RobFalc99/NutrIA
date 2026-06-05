@@ -381,7 +381,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                     // Quick gram chips
                     Wrap(
                       spacing: 8,
-                      children: [30, 50, 100, 150, 200, 250].map((g) {
+                      children: [5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) {
                         return ActionChip(
                           label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
                           backgroundColor: Colors.white.withOpacity(0.06),
@@ -1560,7 +1560,7 @@ class _FoodInfoSheetState extends State<_FoodInfoSheet> {
                           // Quick chips
                           Wrap(
                             spacing: 6,
-                            children: [30, 50, 100, 150, 200, 250, 300].map((g) {
+                            children: [5, 10, 25, 30, 50, 100, 150, 200, 250, 300].map((g) {
                               final selected = _grams == g.toDouble();
                               return ChoiceChip(
                                 label: Text('${g}g', style: TextStyle(color: selected ? Colors.black : Colors.white, fontSize: 11)),

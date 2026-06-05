@@ -262,18 +262,50 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     }
   }
 
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: bgCard,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: accentCyan),
+                title: const Text('Fotocamera', style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: accentCyan),
+                title: const Text('Galleria', style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // --- SCANSIONE BARCODE ---
   Future<void> _startBarcodeScan() async {
-    final status = await Permission.camera.request();
-    if (!status.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permesso fotocamera necessario per scansionare il barcode.')),
-      );
-      return;
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
+    if (source == ImageSource.camera) {
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permesso fotocamera necessario per scansionare il barcode.')),
+        );
+        return;
+      }
     }
 
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.camera, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
+    final image = await picker.pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
     if (image == null) return;
 
     _showLoadingDialog(context, 'Lettura del codice a barre con l\'IA...');
@@ -332,16 +364,21 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   // --- SCANSIONE ETICHETTA NUTRIZIONALE CON IA ---
   Future<void> _scanMacroLabelWithAi() async {
-    final status = await Permission.camera.request();
-    if (!status.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permesso fotocamera necessario per scansionare l\'etichetta.')),
-      );
-      return;
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
+    if (source == ImageSource.camera) {
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permesso fotocamera necessario per scansionare l\'etichetta.')),
+        );
+        return;
+      }
     }
 
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.camera, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
+    final image = await picker.pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
     if (image == null) return;
 
     _showLoadingDialog(context, 'Analisi tabella nutrizionale con l\'IA...');
@@ -399,8 +436,9 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   // --- DIALOG DI INSERIMENTO QUANTITÀ & DIARIO ---
   void _showAddQuantityDialog(Food food, {bool showSaveFavorite = true}) {
-    double amount = 100.0;
-    final textController = TextEditingController(text: '100');
+    double amount = food.estimatedAmountGrams ?? 100.0;
+    final initialText = amount == amount.toInt() ? amount.toInt().toString() : amount.toStringAsFixed(1);
+    final textController = TextEditingController(text: initialText);
     final nameController = TextEditingController(text: food.name);
     final brandController = TextEditingController(text: food.brand ?? '');
 
@@ -475,7 +513,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
-                      children: [50, 100, 150, 200, 250].map((g) {
+                      children: [5, 10, 25, 50, 100, 150, 200, 250].map((g) {
                         return ActionChip(
                           label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
                           backgroundColor: Colors.white.withValues(alpha: 0.06),
@@ -1615,19 +1653,50 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                             hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.03),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isListening ? Icons.mic : Icons.mic_none,
-                                color: _isListening ? const Color(0xFFFF007F) : const Color(0xFF00FFC2),
+                            suffixIcon: SizedBox(
+                              width: 40,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Text(
+                                      'C',
+                                      style: TextStyle(
+                                        color: accentPink,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      setDialogState(() {
+                                        _singleFoodAiController.clear();
+                                        _aiSingleFoodResult = null;
+                                        _singleFoodAiError = null;
+                                      });
+                                    },
+                                    tooltip: 'Cancella',
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      _isListening ? Icons.mic : Icons.mic_none,
+                                      color: _isListening ? const Color(0xFFFF007F) : const Color(0xFF00FFC2),
+                                    ),
+                                    onPressed: () {
+                                      if (_isListening) {
+                                        _stopListeningWithState(setDialogState);
+                                      } else {
+                                        _startListeningWithState(setDialogState);
+                                      }
+                                    },
+                                    tooltip: 'Dettatura vocale 🎙️',
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                  ),
+                                ],
                               ),
-                              onPressed: () {
-                                if (_isListening) {
-                                  _stopListeningWithState(setDialogState);
-                                } else {
-                                  _startListeningWithState(setDialogState);
-                                }
-                              },
-                              tooltip: 'Dettatura vocale 🎙️',
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                             focusedBorder: OutlineInputBorder(

@@ -9,6 +9,7 @@ class Food {
   final double fibersPer100g; // Aggiunto per tracciamento custom
   final bool isCustom; // True se è un alimento personale creato dall'utente
   final bool isOnline; // True se salvato sul DB online, False se locale/OpenFoodFacts
+  final double? estimatedAmountGrams; // Aggiunto per stima quantità dall'IA
 
   Food({
     required this.id,
@@ -21,6 +22,7 @@ class Food {
     this.fibersPer100g = 0.0,
     this.isCustom = false,
     this.isOnline = false,
+    this.estimatedAmountGrams,
   });
 }
 
