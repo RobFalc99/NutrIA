@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 # Default values
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 GITHUB_OWNER="RobFalc99"
-GITHUB_REPO="kcal"
+GITHUB_REPO="NutrIA"
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do

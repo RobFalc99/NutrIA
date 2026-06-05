@@ -61,8 +61,8 @@
 ### Configurazione Locale
 1. Clona il repository:
    ```bash
-   git clone https://github.com/RobFalc99/kcal.git
-   cd kcal
+   git clone https://github.com/RobFalc99/NutrIA.git
+   cd NutrIA
    ```
 2. Installa le dipendenze:
    ```bash
