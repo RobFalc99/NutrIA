@@ -23,4 +23,6 @@ class UserProfileEntity {
   bool use8020Mode = true; // Modalità 80/20 abilitata
   String? geminiApiKey; // La chiave API fornita dall'utente
   String? geminiModel; // Modello Gemini selezionato dall'utente
+  int historyLimit = 100; // Limite elementi in cronologia
 }
+

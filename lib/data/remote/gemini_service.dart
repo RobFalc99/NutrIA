@@ -14,7 +14,8 @@ class GeminiService {
   Future<List<MealItem>> analyzeTextToMeals(String text) async {
     final systemPrompt = '''
 Sei un nutrizionista esperto ed estremamente preciso.
-Il tuo compito è analizzare la descrizione del pasto fornito dall'utente ed estrarre i singoli ingredienti/alimenti, stimando accuratamente la loro grammatura in grammi e calcolando i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di ciascun alimento.
+Il tuo compito è analizzare la descrizione del pasto (o dei pasti dell'intera giornata) fornito dall'utente ed estrarre i singoli ingredienti/alimenti, stimando la loro grammatura ed i macronutrienti riferiti a 100g.
+Inoltre, associa ogni alimento al pasto di appartenenza tramite il campo "targetMeal" (valori ammessi: "Colazione", "Pranzo", "Cena", "Spuntini"). Ad esempio, se l'utente dice "a colazione ho mangiato riso, a pranzo uova", riserva "Colazione" per il riso e "Pranzo" per le uova. Se non diversamente indicato, imposta "targetMeal" su un valore predefinito coerente con l'orario o con il contesto.
 
 REGOLE TASSATIVE PER LA STIMA DELLA GRAMMATURA (amountGrams):
 1. SE L'UTENTE SPECIFICA UNA GRAMMATURA O QUANTITÀ NUMERICA CHIARA (es. "100g di pasta", "pasta 80g", "80 grammi", "tonno da 80g", "un uovo da 60 grammi"), devi ASSOLUTAMENTE impostare il campo 'amountGrams' a quel valore preciso (es. 100.0, 80.0, 60.0). NON alterare né stimare valori diversi quando sono esplicitati!
@@ -37,7 +38,8 @@ Il formato JSON richiesto deve essere esattamente questo:
     "proteinsPer100g": 10.5,
     "carbsPer100g": 2.0,
     "fatsPer100g": 5.0,
-    "fibersPer100g": 1.5
+    "fibersPer100g": 1.5,
+    "targetMeal": "Colazione"
   }
 ]
 ''';
@@ -65,7 +67,8 @@ Il formato JSON richiesto deve essere esattamente questo:
   Future<List<MealItem>> analyzeImageToMeals(List<int> imageBytes, {String? additionalText}) async {
     final systemPrompt = '''
 Sei un nutrizionista esperto ed estremamente preciso.
-Il tuo compito è analizzare l'immagine del pasto fornito dall'utente (e considerare qualsiasi eventuale testo descrittivo aggiuntivo) ed estrarre i singoli ingredienti/alimenti, stimando accuratamente la loro grammatura in grammi e calcolando i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di ciascun alimento.
+Il tuo compito è analizzare l'immagine del pasto (o dei pasti dell'intera giornata) fornito dall'utente (e considerare qualsiasi eventuale testo descrittivo aggiuntivo) ed estrarre i singoli ingredienti/alimenti, stimando la loro grammatura ed i macronutrienti riferiti a 100g.
+Inoltre, associa ogni alimento al pasto di appartenenza tramite il campo "targetMeal" (valori ammessi: "Colazione", "Pranzo", "Cena", "Spuntini"). Ad esempio, se l'utente dice "a colazione ho mangiato riso, a pranzo uova", riserva "Colazione" per il riso e "Pranzo" per le uova. Se non diversamente indicato, imposta "targetMeal" su un valore predefinito coerente con l'orario o con il contesto.
 
 REGOLE TASSATIVE PER LA STIMA DELLA GRAMMATURA (amountGrams):
 1. SE L'UTENTE SPECIFICA UNA GRAMMATURA O QUANTITÀ NUMERICA CHIARA NEL TESTO AGGIUNTIVO (es. "100g di pasta", "pasta 80g", "80 grammi", "tonno da 80g", "un uovo da 60 grammi"), devi ASSOLUTAMENTE impostare il campo 'amountGrams' a quel valore preciso (es. 100.0, 80.0, 60.0). NON alterare né stimare valori diversi quando sono esplicitati!
@@ -88,7 +91,8 @@ Il formato JSON richiesto deve essere esattamente questo:
     "proteinsPer100g": 10.5,
     "carbsPer100g": 2.0,
     "fatsPer100g": 5.0,
-    "fibersPer100g": 1.5
+    "fibersPer100g": 1.5,
+    "targetMeal": "Colazione"
   }
 ]
 ''';
@@ -370,9 +374,12 @@ Il formato JSON richiesto deve essere esattamente questo:
         isCustom: true,
       );
 
+      final String? targetMeal = _findValue(item, ['targetMeal', 'target_meal', 'meal', 'pasto']);
+
       return MealItem(
         food: food,
         amountGrams: amount,
+        targetMeal: targetMeal,
       );
     }).toList();
   }

@@ -1198,6 +1198,7 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                     _estimatedItems[index] = MealItem(
                       food: item.food,
                       amountGrams: newGrams,
+                      targetMeal: item.targetMeal,
                     );
                   });
                 }
@@ -1217,19 +1218,78 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
     });
   }
 
-  void _approveAndAdd() {
-    final appState = context.read<AppState>();
-    for (var item in _estimatedItems) {
-      appState.addMealItem(_selectedMeal, item.food, item.amountGrams);
-    }
+  String _normalizeMealName(String? rawName) {
+    if (rawName == null) return 'Spuntini';
+    final lower = rawName.trim().toLowerCase();
+    if (lower.contains('colazione')) return 'Colazione';
+    if (lower.contains('pranzo')) return 'Pranzo';
+    if (lower.contains('cena')) return 'Cena';
+    if (lower.contains('spuntin') || lower.contains('merenda')) return 'Spuntini';
+    return 'Spuntini'; // default fallback
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Pasto aggiunto con successo a $_selectedMeal!'),
-        backgroundColor: const Color(0xFF00FFC2),
-        behavior: SnackBarBehavior.floating,
+  Widget _buildMealBadge(String? targetMeal) {
+    final meal = _normalizeMealName(targetMeal);
+    Color badgeColor;
+    switch (meal) {
+      case 'Colazione':
+        badgeColor = const Color(0xFFFFB300); // Amber
+        break;
+      case 'Pranzo':
+        badgeColor = const Color(0xFF00E5FF); // Cyan
+        break;
+      case 'Cena':
+        badgeColor = const Color(0xFFD500F9); // Purple
+        break;
+      case 'Spuntini':
+      default:
+        badgeColor = const Color(0xFFFF1744); // Pink/Red
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: badgeColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: badgeColor.withOpacity(0.3), width: 0.8),
+      ),
+      child: Text(
+        meal,
+        style: TextStyle(
+          color: badgeColor,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
+  }
+
+  void _approveAndAdd() {
+    final appState = context.read<AppState>();
+    if (_selectedMeal == 'Tutta la giornata') {
+      for (var item in _estimatedItems) {
+        final meal = _normalizeMealName(item.targetMeal);
+        appState.addMealItem(meal, item.food, item.amountGrams);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pasti della giornata aggiunti con successo!'),
+          backgroundColor: Color(0xFF00FFC2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      for (var item in _estimatedItems) {
+        appState.addMealItem(_selectedMeal, item.food, item.amountGrams);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pasto aggiunto con successo a $_selectedMeal!'),
+          backgroundColor: const Color(0xFF00FFC2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
     Navigator.pop(context);
   }
 
@@ -1328,7 +1388,7 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                             value: _selectedMeal,
                             dropdownColor: const Color(0xFF16161D),
                             style: const TextStyle(color: accentCyan, fontWeight: FontWeight.bold),
-                            items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini']
+                             items: ['Colazione', 'Pranzo', 'Cena', 'Spuntini', 'Tutta la giornata']
                                 .map((name) => DropdownMenuItem(value: name, child: Text(name)))
                                 .toList(),
                             onChanged: (val) {
@@ -1443,19 +1503,50 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                   hintStyle: const TextStyle(color: Colors.white24, fontSize: 12),
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.03),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isListening ? Icons.mic : Icons.mic_none,
-                      color: _isListening ? const Color(0xFFFF007F) : const Color(0xFF00FFC2),
+                  suffixIcon: SizedBox(
+                    width: 40,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Text(
+                            'C',
+                            style: TextStyle(
+                              color: Color(0xFFFF007F), // accentPink
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _textController.clear();
+                              _estimatedItems = [];
+                              _error = null;
+                            });
+                          },
+                          tooltip: 'Cancella',
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            _isListening ? Icons.mic : Icons.mic_none,
+                            color: _isListening ? const Color(0xFFFF007F) : const Color(0xFF00FFC2),
+                          ),
+                          onPressed: () {
+                            if (_isListening) {
+                              _stopListening();
+                            } else {
+                              _startListening();
+                            }
+                          },
+                          tooltip: 'Dettatura vocale 🎙️',
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                        ),
+                      ],
                     ),
-                    onPressed: () {
-                      if (_isListening) {
-                        _stopListening();
-                      } else {
-                        _startListening();
-                      }
-                    },
-                    tooltip: 'Dettatura vocale 🎙️',
                   ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   focusedBorder: OutlineInputBorder(
@@ -1523,7 +1614,21 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(item.food.name, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            item.food.name,
+                                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (_selectedMeal == 'Tutta la giornata') ...[
+                                          const SizedBox(width: 8),
+                                          _buildMealBadge(item.targetMeal),
+                                        ],
+                                      ],
+                                    ),
                                     Text(
                                       '${item.amountGrams.toInt()}g • P: ${item.proteins.toInt()}g | C: ${item.carbs.toInt()}g | F: ${item.fats.toInt()}g',
                                       style: const TextStyle(color: Colors.white54, fontSize: 11),
@@ -1559,7 +1664,12 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
-                        child: Text('Approva ed Inserisci a $_selectedMeal', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                        child: Text(
+                          _selectedMeal == 'Tutta la giornata'
+                              ? 'Approva ed Inserisci pasti'
+                              : 'Approva ed Inserisci a $_selectedMeal',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
                       ),
                     ],
                   ),

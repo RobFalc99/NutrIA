@@ -67,18 +67,23 @@ const UserProfileEntitySchema = CollectionSchema(
       name: r'heightCm',
       type: IsarType.double,
     ),
-    r'name': PropertySchema(
+    r'historyLimit': PropertySchema(
       id: 10,
+      name: r'historyLimit',
+      type: IsarType.long,
+    ),
+    r'name': PropertySchema(
+      id: 11,
       name: r'name',
       type: IsarType.string,
     ),
     r'trackingMode': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'trackingMode',
       type: IsarType.string,
     ),
     r'use8020Mode': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'use8020Mode',
       type: IsarType.bool,
     )
@@ -136,9 +141,10 @@ void _userProfileEntitySerialize(
   writer.writeDouble(offsets[7], object.goalFibers);
   writer.writeDouble(offsets[8], object.goalProteins);
   writer.writeDouble(offsets[9], object.heightCm);
-  writer.writeString(offsets[10], object.name);
-  writer.writeString(offsets[11], object.trackingMode);
-  writer.writeBool(offsets[12], object.use8020Mode);
+  writer.writeLong(offsets[10], object.historyLimit);
+  writer.writeString(offsets[11], object.name);
+  writer.writeString(offsets[12], object.trackingMode);
+  writer.writeBool(offsets[13], object.use8020Mode);
 }
 
 UserProfileEntity _userProfileEntityDeserialize(
@@ -158,10 +164,11 @@ UserProfileEntity _userProfileEntityDeserialize(
   object.goalFibers = reader.readDouble(offsets[7]);
   object.goalProteins = reader.readDouble(offsets[8]);
   object.heightCm = reader.readDouble(offsets[9]);
+  object.historyLimit = reader.readLong(offsets[10]);
   object.id = id;
-  object.name = reader.readString(offsets[10]);
-  object.trackingMode = reader.readString(offsets[11]);
-  object.use8020Mode = reader.readBool(offsets[12]);
+  object.name = reader.readString(offsets[11]);
+  object.trackingMode = reader.readString(offsets[12]);
+  object.use8020Mode = reader.readBool(offsets[13]);
   return object;
 }
 
@@ -193,10 +200,12 @@ P _userProfileEntityDeserializeProp<P>(
     case 9:
       return (reader.readDouble(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1126,6 +1135,62 @@ extension UserProfileEntityQueryFilter
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      historyLimitEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'historyLimit',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      historyLimitGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'historyLimit',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      historyLimitLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'historyLimit',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
+      historyLimitBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'historyLimit',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterFilterCondition>
       idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1612,6 +1677,20 @@ extension UserProfileEntityQuerySortBy
   }
 
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      sortByHistoryLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'historyLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      sortByHistoryLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'historyLimit', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
       sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1795,6 +1874,20 @@ extension UserProfileEntityQuerySortThenBy
     });
   }
 
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      thenByHistoryLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'historyLimit', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy>
+      thenByHistoryLimitDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'historyLimit', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfileEntity, UserProfileEntity, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -1923,6 +2016,13 @@ extension UserProfileEntityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserProfileEntity, UserProfileEntity, QDistinct>
+      distinctByHistoryLimit() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'historyLimit');
+    });
+  }
+
   QueryBuilder<UserProfileEntity, UserProfileEntity, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2017,6 +2117,13 @@ extension UserProfileEntityQueryProperty
   QueryBuilder<UserProfileEntity, double, QQueryOperations> heightCmProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'heightCm');
+    });
+  }
+
+  QueryBuilder<UserProfileEntity, int, QQueryOperations>
+      historyLimitProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'historyLimit');
     });
   }
 

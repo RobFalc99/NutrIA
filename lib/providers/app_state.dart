@@ -476,7 +476,7 @@ class AppState extends ChangeNotifier {
         }
       }
       final list = uniqueFoods.values.toList().reversed.toList();
-      return list.take(100).toList();
+      return list.take(currentUser?.historyLimit ?? 100).toList();
     } catch (e) {
       print('Errore caricamento cronologia cibi: $e');
       return [];

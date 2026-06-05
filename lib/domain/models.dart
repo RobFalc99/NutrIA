@@ -29,10 +29,12 @@ class Food {
 class MealItem {
   final Food food;
   final double amountGrams;
+  final String? targetMeal; // Aggiunto per stima "Tutta la giornata"
 
   MealItem({
     required this.food,
     required this.amountGrams,
+    this.targetMeal,
   });
 
   // Calcoli derivati in base alla grammatura

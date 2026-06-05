@@ -46,6 +46,7 @@ class _ProfileFormState extends State<ProfileForm> {
   late String _trackingMode;
   late bool _use8020Mode;
   late String _selectedModel;
+  late int _historyLimit;
   bool _obscureApiKey = true;
 
   bool _isDirty = false;
@@ -61,6 +62,7 @@ class _ProfileFormState extends State<ProfileForm> {
     final use8020Val = _use8020Mode;
     final apiKeyVal = _apiKeyController.text.trim().isEmpty ? null : _apiKeyController.text.trim();
     final modelVal = _selectedModel;
+    final historyLimitVal = _historyLimit;
 
     final user = widget.user;
     final bool dirty = nameVal != user.name ||
@@ -72,7 +74,8 @@ class _ProfileFormState extends State<ProfileForm> {
         trackingVal != user.trackingMode ||
         use8020Val != user.use8020Mode ||
         apiKeyVal != user.geminiApiKey ||
-        modelVal != user.geminiModel;
+        modelVal != user.geminiModel ||
+        historyLimitVal != user.historyLimit;
 
     if (dirty != _isDirty) {
       setState(() {
@@ -101,6 +104,7 @@ class _ProfileFormState extends State<ProfileForm> {
     _trackingMode = widget.user.trackingMode;
     _use8020Mode = widget.user.use8020Mode;
     _selectedModel = widget.user.geminiModel ?? 'gemma-4-26b-a4b-it';
+    _historyLimit = widget.user.historyLimit;
 
     _proteinsController.addListener(_updateCalculatedGoalCalories);
     _carbsController.addListener(_updateCalculatedGoalCalories);
@@ -182,6 +186,11 @@ class _ProfileFormState extends State<ProfileForm> {
           _use8020Mode = widget.user.use8020Mode;
         });
       }
+      if (_historyLimit != widget.user.historyLimit) {
+        setState(() {
+          _historyLimit = widget.user.historyLimit;
+        });
+      }
       _checkIfDirty();
     }
   }
@@ -215,7 +224,8 @@ class _ProfileFormState extends State<ProfileForm> {
       ..geminiApiKey = _apiKeyController.text.trim().isEmpty
           ? null
           : _apiKeyController.text.trim()
-      ..geminiModel = _selectedModel;
+      ..geminiModel = _selectedModel
+      ..historyLimit = _historyLimit;
     appState.updateProfile(profile);
     setState(() {
       _isDirty = false;
@@ -616,6 +626,48 @@ class _ProfileFormState extends State<ProfileForm> {
                   setState(() {
                     _selectedModel = val;
                   });
+                  _checkIfDirty();
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // ── Limite Cronologia ──────────────────────────────────────────────
+            const _SectionTitle(title: 'Limite Cronologia Alimenti'),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<int>(
+              value: _historyLimit,
+              style: const TextStyle(color: Colors.white),
+              dropdownColor: const Color(0xFF1C1C24),
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: 'Limite Cronologia',
+                labelStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.history, color: Color(0xFF00FFC2)),
+                filled: true,
+                fillColor: const Color(0xFF1C1C24),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF00FFC2)),
+                ),
+              ),
+              items: const [
+                DropdownMenuItem(value: 50, child: Text('50 elementi')),
+                DropdownMenuItem(value: 100, child: Text('100 elementi (Predefinito)')),
+                DropdownMenuItem(value: 200, child: Text('200 elementi')),
+                DropdownMenuItem(value: 500, child: Text('500 elementi')),
+                DropdownMenuItem(value: 1000, child: Text('1000 elementi')),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _historyLimit = val;
+                  });
+                  _checkIfDirty();
                 }
               },
             ),
