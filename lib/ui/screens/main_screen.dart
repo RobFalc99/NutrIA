@@ -5,6 +5,7 @@ import 'package:quick_actions/quick_actions.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../providers/translations.dart';
+import '../../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'alimenti_screen.dart';
@@ -387,9 +388,9 @@ class _MainScreenState extends State<MainScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: Colors.white.withAlpha((0.02 * 255).toInt()),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: Colors.white.withAlpha((0.04 * 255).toInt())),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,7 +412,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgDark,
+      backgroundColor: context.bgPrimary,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -471,13 +472,13 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildBottomNavBar() {
     return Container(
       decoration: BoxDecoration(
-        color: _bgCard,
+        color: context.bgCard,
         border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.06), width: 1),
+          top: BorderSide(color: context.borderColor, width: 1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -517,7 +518,7 @@ class _MainScreenState extends State<MainScreen> {
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+            color: isSelected ? color.withAlpha((0.1 * 255).toInt()) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(

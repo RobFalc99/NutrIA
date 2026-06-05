@@ -7,6 +7,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../providers/app_state.dart';
 import '../../providers/translations.dart';
+import '../../providers/theme_provider.dart';
 import '../../data/local/entities/daily_log_entity.dart';
 import '../../domain/models.dart';
 
@@ -258,18 +259,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final int trackedDaysCount = stats.trackedDays.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F13),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
         title: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/logo.png',
-                height: 32,
-                width: 32,
-                fit: BoxFit.cover,
-              ),
+            CircleAvatar(
+              radius: 16,
+              backgroundImage: AssetImage('assets/logo.png'),
             ),
             const SizedBox(width: 8),
             const Text(
@@ -403,12 +399,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.02)],
+                  colors: [context.bgCard.withOpacity(0.9), context.bgCard.withOpacity(0.7)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(color: context.borderColor),
               ),
               child: Column(
                 children: [

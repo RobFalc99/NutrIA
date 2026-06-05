@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../providers/app_state.dart';
 import '../../data/local/entities/user_profile_entity.dart';
 import '../../providers/translations.dart';
@@ -56,7 +57,7 @@ class _ProfileFormState extends State<ProfileForm> {
   bool _isDirty = false;
 
   void _checkIfDirty() {
-    final nameVal = _nameController.text.trim().isEmpty ? 'Atleta KCALcolatore' : _nameController.text.trim();
+    final nameVal = _nameController.text.trim().isEmpty ? 'Atleta NutrIA' : _nameController.text.trim();
     final calVal = double.tryParse(_caloriesController.text) ?? 2000;
     final protVal = double.tryParse(_proteinsController.text) ?? 150;
     final carbVal = double.tryParse(_carbsController.text) ?? 200;
@@ -241,7 +242,7 @@ class _ProfileFormState extends State<ProfileForm> {
     final appState = context.read<AppState>();
     final profile = UserProfileEntity()
       ..id = appState.currentUser?.id ?? 1
-      ..name = _nameController.text.trim().isEmpty ? 'Atleta KCALcolatore' : _nameController.text.trim()
+      ..name = _nameController.text.trim().isEmpty ? 'Atleta NutrIA' : _nameController.text.trim()
       ..goalCalories = double.tryParse(_caloriesController.text) ?? 2000
       ..goalProteins = double.tryParse(_proteinsController.text) ?? 150
       ..goalCarbs = double.tryParse(_carbsController.text) ?? 200
@@ -284,7 +285,7 @@ class _ProfileFormState extends State<ProfileForm> {
     final stats = appState.weeklyStats;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F13),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
@@ -339,9 +340,9 @@ class _ProfileFormState extends State<ProfileForm> {
               margin: const EdgeInsets.only(bottom: 20),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1C24),
+                color: context.bgCardAlt,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withAlpha((0.04 * 255).toInt())),
+                border: Border.all(color: context.borderColor),
               ),
               child: Row(
                 children: [
@@ -876,6 +877,47 @@ class _ProfileFormState extends State<ProfileForm> {
                 ),
               ),
             ],
+            // ── Tema App ────────────────────────────────────────────────────
+            const SizedBox(height: 32),
+            _SectionTitle(title: context.tr('Aspetto')),
+            const SizedBox(height: 10),
+            Builder(builder: (ctx) {
+              final themeProvider = ctx.watch<ThemeProvider>();
+              return Container(
+                decoration: BoxDecoration(
+                  color: ctx.bgCardAlt,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: ctx.borderColor),
+                ),
+                child: SwitchListTile(
+                  value: themeProvider.isDarkMode,
+                  onChanged: (isDark) => themeProvider.toggleTheme(isDark),
+                  activeColor: ctx.accentCyan,
+                  inactiveThumbColor: ctx.accentCyan,
+                  inactiveTrackColor: ctx.accentCyan.withOpacity(0.3),
+                  secondary: Icon(
+                    themeProvider.isDarkMode
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded,
+                    color: ctx.accentCyan,
+                  ),
+                  title: Text(
+                    themeProvider.isDarkMode
+                        ? ctx.tr('Modalità Scura')
+                        : ctx.tr('Modalità Chiara'),
+                    style: TextStyle(
+                      color: ctx.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    ctx.tr('Cambia il tema visivo dell\'app'),
+                    style: TextStyle(color: ctx.textMuted, fontSize: 12),
+                  ),
+                ),
+              );
+            }),
+
             // ── Feedback & Support ──────────────────────────────────────────
             const SizedBox(height: 32),
             _SectionTitle(title: context.tr('Feedback & Supporto')),
@@ -883,9 +925,9 @@ class _ProfileFormState extends State<ProfileForm> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1C24),
+                color: context.bgCardAlt,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withAlpha((0.05 * 255).toInt())),
+                border: Border.all(color: context.borderColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -930,8 +972,8 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: context.textPrimary,
           fontSize: 15,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.3,
@@ -956,17 +998,19 @@ class _ModeChip extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isOn ? const Color(0xFF00FFC2).withAlpha((0.15 * 255).toInt()) : const Color(0xFF1C1C24),
+            color: isOn
+                ? context.accentCyan.withAlpha((0.15 * 255).toInt())
+                : context.bgCardAlt,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isOn ? const Color(0xFF00FFC2) : Colors.white12,
+              color: isOn ? context.accentCyan : context.borderColor,
             ),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isOn ? const Color(0xFF00FFC2) : Colors.white54,
+              color: isOn ? context.accentCyan : context.textMuted,
               fontWeight: isOn ? FontWeight.bold : FontWeight.normal,
               fontSize: 13,
             ),
@@ -997,10 +1041,10 @@ class _Field extends StatelessWidget {
     return TextFormField(
       controller: controller,
       keyboardType: numeric ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: context.textPrimary),
       validator: (v) {
         if (v == null || v.trim().isEmpty) {
-          return null; // Non richiesto, usiamo fallbacks sicuri al salvataggio
+          return null;
         }
         if (numeric && double.tryParse(v) == null) {
           return 'Inserisci un numero valido';
@@ -1009,19 +1053,19 @@ class _Field extends StatelessWidget {
       },
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
-        prefixIcon: Icon(icon, color: const Color(0xFF00FFC2), size: 20),
+        labelStyle: TextStyle(color: context.textMuted),
+        prefixIcon: Icon(icon, color: context.accentCyan, size: 20),
         suffixText: suffix,
-        suffixStyle: const TextStyle(color: Colors.white38),
+        suffixStyle: TextStyle(color: context.textMuted),
         filled: true,
-        fillColor: const Color(0xFF1C1C24),
+        fillColor: context.bgCardAlt,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00FFC2)),
+          borderSide: BorderSide(color: context.accentCyan),
         ),
         errorStyle: const TextStyle(color: Color(0xFFFF6B6B)),
       ),
@@ -1046,15 +1090,15 @@ class _ToggleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C24),
+        color: context.bgCardAlt,
         borderRadius: BorderRadius.circular(14),
       ),
       child: SwitchListTile(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00FFC2),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        activeColor: context.accentCyan,
+        title: Text(title, style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, style: TextStyle(color: context.textMuted, fontSize: 12)),
       ),
     );
   }
