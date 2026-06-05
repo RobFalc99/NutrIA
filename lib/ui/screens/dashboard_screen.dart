@@ -221,6 +221,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
+    final bool isDiaryEmpty = currentDay.meals.isEmpty || currentDay.meals.every((m) => m.items.isEmpty);
+
     // Colori Neon Premium
     const accentCyan = Color(0xFF00FFC2);
     const accentPink = Color(0xFFFF007F);
@@ -506,6 +508,97 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 24),
 
+            // Card celebrativa o avviso Mascotte se Goal Raggiunto o Superato
+            if (currentCal > calGoal * 1.10 && calGoal > 0) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [accentPink.withOpacity(0.15), accentPink.withOpacity(0.05)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: accentPink.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/avviso.png',
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('Limite Calorie Superato!'),
+                            style: const TextStyle(
+                              color: accentPink,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr('Hai superato il tuo obiettivo calorico giornaliero di oltre il 10%. Fai attenzione ai prossimi pasti!'),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (currentCal >= calGoal && calGoal > 0) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [const Color(0xFF00FFC2).withOpacity(0.15), const Color(0xFF00E676).withOpacity(0.05)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF00FFC2).withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/celebration.png',
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('Obiettivo Calorie Raggiunto!'),
+                            style: const TextStyle(
+                              color: Color(0xFF00FFC2),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr('Ottimo lavoro! Hai completato il tuo target giornaliero. Continua così!'),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Sezione Diaristica Pasti
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -527,10 +620,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 10),
             
-            _buildMealSection(context, 'Colazione', currentDay.meals.firstWhere((m) => m.name == 'Colazione', orElse: () => MealEntity()), appState),
-            _buildMealSection(context, 'Pranzo', currentDay.meals.firstWhere((m) => m.name == 'Pranzo', orElse: () => MealEntity()), appState),
-            _buildMealSection(context, 'Cena', currentDay.meals.firstWhere((m) => m.name == 'Cena', orElse: () => MealEntity()), appState),
-            _buildMealSection(context, 'Spuntini', currentDay.meals.firstWhere((m) => m.name == 'Spuntini', orElse: () => MealEntity()), appState),
+            if (isDiaryEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.02),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withOpacity(0.04)),
+                ),
+                child: Column(
+                  children: [
+                    Image.asset(
+                      'assets/benvenuto.png',
+                      height: 160,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C24),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: accentCyan.withOpacity(0.2)),
+                      ),
+                      child: Text(
+                        context.tr('Ciao! Pronto a registrare i tuoi pasti di oggi? Usa la stima con IA o scansiona un codice!'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              _buildMealSection(context, 'Colazione', currentDay.meals.firstWhere((m) => m.name == 'Colazione', orElse: () => MealEntity()), appState),
+              _buildMealSection(context, 'Pranzo', currentDay.meals.firstWhere((m) => m.name == 'Pranzo', orElse: () => MealEntity()), appState),
+              _buildMealSection(context, 'Cena', currentDay.meals.firstWhere((m) => m.name == 'Cena', orElse: () => MealEntity()), appState),
+              _buildMealSection(context, 'Spuntini', currentDay.meals.firstWhere((m) => m.name == 'Spuntini', orElse: () => MealEntity()), appState),
+            ],
 
             const SizedBox(height: 24),
 
@@ -1331,16 +1462,20 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.vpn_key_off, color: accentPink, size: 40),
+                    Image.asset(
+                      'assets/avviso.png',
+                      height: 100,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Chiave API Gemini assente!',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    Text(
+                      context.tr('Chiave API Gemini assente!'),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Per utilizzare la stima ad intelligenza artificiale dell\'intero pasto con modelli avanzati di Google, inserisci la tua chiave API nelle impostazioni del tuo profilo.',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    Text(
+                      context.tr('Per utilizzare la stima ad intelligenza artificiale dell\'intero pasto con modelli avanzati di Google, inserisci la tua chiave API nelle impostazioni del tuo profilo.'),
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
@@ -1353,7 +1488,7 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                         backgroundColor: accentPink,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Configura Profilo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text(context.tr('Configura Profilo'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -1575,6 +1710,38 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
               ),
 
               const SizedBox(height: 24),
+
+              if (_isLoading) ...[
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.02),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.04)),
+                  ),
+                  child: Column(
+                    children: [
+                      Image.asset(
+                        'assets/thinking.png',
+                        height: 130,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 16),
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: accentCyan),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.tr('Sto calcolando le calorie e i macronutrienti del pasto con l\'IA...'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               // Renders parsed items list
               if (_estimatedItems.isNotEmpty) ...[

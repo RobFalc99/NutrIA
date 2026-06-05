@@ -33,3 +33,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/benvenuto.png
+    - assets/thinking.png
+    - assets/celebration.png
+    - assets/avviso.png

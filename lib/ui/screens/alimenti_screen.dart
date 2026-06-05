@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'dart:io';
 import '../../providers/app_state.dart';
+import '../../providers/translations.dart';
 import '../../domain/models.dart';
 import '../../data/remote/open_food_facts_service.dart';
 import 'add_meal_screen.dart'; // Per riutilizzare BarcodeScannerScreen
@@ -77,19 +78,28 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: bgCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(color: accentCyan),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
+                Image.asset(
+                  'assets/thinking.png',
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 16),
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: accentCyan),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr(message),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold, height: 1.4),
                 ),
               ],
             ),
@@ -1616,18 +1626,22 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                         ],
                       ),
                       const SizedBox(height: 16),
-                      if (!hasKey) ...[
-                        const Icon(Icons.psychology_alt, size: 48, color: Colors.white24),
+                       if (!hasKey) ...[
+                        Image.asset(
+                          'assets/avviso.png',
+                          height: 100,
+                          fit: BoxFit.contain,
+                        ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Assistente AI Disattivato',
-                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        Text(
+                          context.tr('Assistente AI Disattivato'),
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          'Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.',
-                          style: TextStyle(color: Colors.white54, fontSize: 11),
+                        Text(
+                          context.tr('Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.'),
+                          style: const TextStyle(color: Colors.white54, fontSize: 11),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
@@ -1641,7 +1655,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           icon: const Icon(Icons.settings, color: Colors.white, size: 16),
-                          label: const Text('Vai al Profilo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          label: Text(context.tr('Vai al Profilo'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
                       ] else ...[
                         const Text(
@@ -1734,7 +1748,37 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                           ),
                         ),
                         const SizedBox(height: 16),
-                        if (_aiSingleFoodResult != null) ...[
+                        if (_isSingleFoodAiLoading) ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.02),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.04)),
+                            ),
+                            child: Column(
+                              children: [
+                                Image.asset(
+                                  'assets/thinking.png',
+                                  height: 100,
+                                  fit: BoxFit.contain,
+                                ),
+                                const SizedBox(height: 12),
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: accentCyan),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  context.tr('Sto identificando l\'alimento con l\'IA...'),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else if (_aiSingleFoodResult != null) ...[
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -1814,10 +1858,21 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: accentPink.withOpacity(0.2)),
                             ),
-                            child: Text(
-                              _singleFoodAiError!,
-                              style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12),
-                              textAlign: TextAlign.center,
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  'assets/avviso.png',
+                                  height: 48,
+                                  fit: BoxFit.contain,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    context.tr(_singleFoodAiError!),
+                                    style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

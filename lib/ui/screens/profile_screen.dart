@@ -334,6 +334,55 @@ class _ProfileFormState extends State<ProfileForm> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ── Header Mascotte ──────────────────────────────────────────────
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C24),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.04)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.03),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF00FFC2).withOpacity(0.3), width: 1.5),
+                      image: const DecorationImage(
+                        image: AssetImage('assets/benvenuto.png'),
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.name.isEmpty ? 'Atleta NutrIA' : user.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          context.tr('Membro dal') + ' 2026',
+                          style: const TextStyle(color: Colors.white38, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // ── Streak Card ──────────────────────────────────────────────────
             FutureBuilder<int>(
               future: context.read<AppState>().getTrackingStreak(),

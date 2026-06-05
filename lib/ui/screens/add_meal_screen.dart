@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:io';
 import '../../providers/app_state.dart';
+import '../../providers/translations.dart';
 import '../../domain/models.dart';
 import '../../data/remote/open_food_facts_service.dart';
 
@@ -863,7 +864,22 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: pink.withOpacity(0.2)),
               ),
-              child: Text(_barcodeError!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/avviso.png',
+                    height: 50,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      context.tr(_barcodeError!),
+                      style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -883,17 +899,21 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.psychology_alt, size: 72, color: Colors.white24),
+            Image.asset(
+              'assets/avviso.png',
+              height: 120,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(height: 16),
-            const Text('Assistente AI Disattivato', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            Text(context.tr('Assistente AI Disattivato'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            const Text('Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.', style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
+            Text(context.tr('Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.'), style: const TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => Navigator.pushNamed(context, '/profile'),
               style: ElevatedButton.styleFrom(backgroundColor: pink, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               icon: const Icon(Icons.settings, color: Colors.white),
-              label: const Text('Vai alle Impostazioni', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: Text(context.tr('Vai alle Impostazioni'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -952,7 +972,37 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
 
           const SizedBox(height: 24),
 
-          if (_aiSingleFoodResult != null) ...[
+          if (_isSingleFoodAiLoading) ...[
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.02),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withOpacity(0.04)),
+              ),
+              child: Column(
+                children: [
+                  Image.asset(
+                    'assets/thinking.png',
+                    height: 120,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 16),
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00FFC2)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr('Sto identificando l\'alimento con l\'IA...'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (_aiSingleFoodResult != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1100,10 +1150,21 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: pink.withOpacity(0.2)),
               ),
-              child: Text(
-                _singleFoodAiError!,
-                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
-                textAlign: TextAlign.center,
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/avviso.png',
+                    height: 50,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      context.tr(_singleFoodAiError!),
+                      style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1953,22 +2014,33 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           if (_isAiExtracting)
             Container(
               color: Colors.black87,
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: Color(0xFF00FFC2)),
-                    SizedBox(height: 16),
-                    Text(
-                      'Lettura codice a barre con IA...',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Gemini sta analizzando l\'immagine...',
-                      style: TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
-                  ],
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/thinking.png',
+                        height: 140,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 20),
+                      const CircularProgressIndicator(color: Color(0xFF00FFC2)),
+                      const SizedBox(height: 20),
+                      Text(
+                        context.tr('Lettura codice a barre con IA...'),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr('Gemini sta analizzando l\'immagine...'),
+                        style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

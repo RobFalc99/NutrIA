@@ -238,6 +238,82 @@ class AppTranslations {
       'en': 'Hello! Ready to track today\'s meals? Use AI estimation or scan a code!',
       'it': 'Ciao! Pronto a registrare i tuoi pasti di oggi? Usa la stima con IA o scansiona un codice!'
     },
+    'Obiettivo Calorie Raggiunto!': {
+      'en': 'Calorie Goal Achieved!',
+      'it': 'Obiettivo Calorie Raggiunto!'
+    },
+    'Membro dal': {
+      'en': 'Member since',
+      'it': 'Membro dal'
+    },
+    'Ottimo lavoro! Hai completato il tuo target giornaliero. Continua così!': {
+      'en': 'Great job! You have completed your daily target. Keep it up!',
+      'it': 'Ottimo lavoro! Hai completato il tuo target giornaliero. Continua così!'
+    },
+    'Sto calcolando le calorie e i macronutrienti del pasto con l\'IA...': {
+      'en': 'Calculating calories and macronutrients of the meal with AI...',
+      'it': 'Sto calcolando le calorie e i macronutrienti del pasto con l\'IA...'
+    },
+    'Sto analizzando l\'alimento...': {
+      'en': 'Analyzing food...',
+      'it': 'Sto analizzando l\'alimento...'
+    },
+    'Sto identificando l\'alimento con l\'IA...': {
+      'en': 'Identifying the food with AI...',
+      'it': 'Sto identificando l\'alimento con l\'IA...'
+    },
+    'Limite Calorie Superato!': {
+      'en': 'Calorie Limit Exceeded!',
+      'it': 'Limite Calorie Superato!'
+    },
+    'Hai superato il tuo obiettivo calorico giornaliero di oltre il 10%. Fai attenzione ai prossimi pasti!': {
+      'en': 'You exceeded your daily calorie goal by more than 10%. Be careful with your next meals!',
+      'it': 'Hai superato il tuo obiettivo calorico giornaliero di oltre il 10%. Fai attenzione ai prossimi pasti!'
+    },
+    'Prodotto non trovato nel database OpenFoodFacts.': {
+      'en': 'Product not found in OpenFoodFacts database.',
+      'it': 'Prodotto non trovato nel database OpenFoodFacts.'
+    },
+    'Errore di connessione durante la scansione.': {
+      'en': 'Connection error during scan.',
+      'it': 'Errore di connessione durante la scansione.'
+    },
+    'Lettura codice a barre con IA...': {
+      'en': 'Reading barcode with AI...',
+      'it': 'Lettura codice a barre con IA...'
+    },
+    'Gemini sta analizzando l\'immagine...': {
+      'en': 'Gemini is analyzing the image...',
+      'it': 'Gemini sta analizzando l\'immagine...'
+    },
+    'Sto analizzando la tabella nutrizionale...': {
+      'en': 'Analyzing nutrition table...',
+      'it': 'Sto analizzando la tabella nutrizionale...'
+    },
+    'Lettura del codice a barre con l\'IA...': {
+      'en': 'Reading barcode with AI...',
+      'it': 'Lettura del codice a barre con l\'IA...'
+    },
+    'Analisi tabella nutrizionale con l\'IA...': {
+      'en': 'Analyzing nutrition table with AI...',
+      'it': 'Analisi tabella nutrizionale con l\'IA...'
+    },
+    'Assistente AI Disattivato': {
+      'en': 'AI Assistant Disabled',
+      'it': 'Assistente AI Disattivato'
+    },
+    'Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.': {
+      'en': 'Enter your Gemini API Key in the profile to enable AI food analysis.',
+      'it': 'Inserisci la tua API Key Gemini nel profilo per abilitare l\'analisi AI degli alimenti.'
+    },
+    'Inserisci la tua API Key Gemini nel profilo per sbloccare l\'IA!': {
+      'en': 'Enter your Gemini API Key in the profile to unlock the AI!',
+      'it': 'Inserisci la tua API Key Gemini nel profilo per sbloccare l\'IA!'
+    },
+    'L\'IA non ha identificato l\'alimento singolo. Prova ad essere più specifico.': {
+      'en': 'The AI did not identify the single food item. Try being more specific.',
+      'it': 'L\'IA non ha identificato l\'alimento singolo. Prova ad essere più specifico.'
+    },
   };
 
   static String translate(String key, String lang) {
