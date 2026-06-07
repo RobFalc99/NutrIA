@@ -41,6 +41,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   // Tab Cronologia
   final _historySearchController = TextEditingController();
+  Future<List<Food>>? _historyFuture;
 
   // Tab AI Singolo / Popup
   final _singleFoodAiController = TextEditingController();
@@ -66,6 +67,13 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging && _tabController.index == 3) {
+        setState(() {
+          _historyFuture = context.read<AppState>().getFoodHistory();
+        });
+      }
+    });
     _initSpeech();
     if (widget.initialMealTarget != null) {
       _selectedMealTarget = widget.initialMealTarget!;
@@ -99,7 +107,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
-                  'assets/thinking.png',
+                  'assets/thinking_clear.png',
                   height: 120,
                   fit: BoxFit.contain,
                 ),
@@ -593,6 +601,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
                           final appState = context.read<AppState>();
                           appState.saveCustomFood(updatedFood);
+                          _historyFuture = null;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Alimento salvato nei tuoi alimenti!'),
@@ -633,6 +642,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                         if (widget.initialMealTarget != null) {
                           final appState = context.read<AppState>();
                           appState.addMealItem(widget.initialMealTarget!, updatedFood, amount);
+                          _historyFuture = null;
                           
                           Navigator.pop(context); // Chiude il quantitativo
 
@@ -686,6 +696,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                     onPressed: () {
                       final appState = this.context.read<AppState>();
                       appState.addMealItem(meal, food, amount);
+                      _historyFuture = null;
 
                       Navigator.pop(context); // Chiude il selettore
                       Navigator.pop(this.context); // Chiude il quantitativo
@@ -912,6 +923,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
             labelColor: accentCyan,
             unselectedLabelColor: Colors.white38,
             indicatorColor: accentCyan,
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
             tabs: const [
               Tab(icon: Icon(Icons.bookmark), text: 'Salvati'),
               Tab(icon: Icon(Icons.language), text: 'Web'),
@@ -1656,7 +1668,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                       const SizedBox(height: 16),
                        if (!hasKey) ...[
                         Image.asset(
-                          'assets/avviso.png',
+                          'assets/avviso_clear.png',
                           height: 100,
                           fit: BoxFit.contain,
                         ),
@@ -1721,7 +1733,13 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                                       ),
                                     ),
                                     onPressed: () {
+                                      if (_isListening) {
+                                        _speechToText.cancel();
+                                      }
                                       setDialogState(() {
+                                        _isListening = false;
+                                        _dictationInitialText = "";
+                                        _dictationLastWords = "";
                                         _singleFoodAiController.clear();
                                         _aiSingleFoodResult = null;
                                         _singleFoodAiError = null;
@@ -1787,7 +1805,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                             child: Column(
                               children: [
                                 Image.asset(
-                                  'assets/thinking.png',
+                                  'assets/thinking_clear.png',
                                   height: 100,
                                   fit: BoxFit.contain,
                                 ),
@@ -1889,7 +1907,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                             child: Row(
                               children: [
                                 Image.asset(
-                                  'assets/avviso.png',
+                                  'assets/avviso_clear.png',
                                   height: 48,
                                   fit: BoxFit.contain,
                                 ),
@@ -2018,8 +2036,9 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   // --- TAB 4: CRONOLOGIA ---
   Widget _buildHistoryTab() {
+    _historyFuture ??= context.read<AppState>().getFoodHistory();
     return FutureBuilder<List<Food>>(
-      future: context.read<AppState>().getFoodHistory(),
+      future: _historyFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: accentCyan));

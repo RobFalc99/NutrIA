@@ -109,7 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   TextField(
                     controller: textController,
                     keyboardType: TextInputType.number,
-                    autofocus: true,
+                    autofocus: false,
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                     decoration: InputDecoration(
                       labelText: 'Quantità (g)',
@@ -265,7 +265,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundImage: AssetImage('assets/logo.png'),
+              backgroundImage: AssetImage('assets/logo_clear.png'),
             ),
             const SizedBox(width: 8),
             const Text(
@@ -515,7 +515,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Row(
                   children: [
                     Image.asset(
-                      'assets/avviso.png',
+                      'assets/avviso_clear.png',
                       height: 80,
                       fit: BoxFit.contain,
                     ),
@@ -559,7 +559,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Row(
                   children: [
                     Image.asset(
-                      'assets/celebration.png',
+                      'assets/celebration_clear.png',
                       height: 80,
                       fit: BoxFit.contain,
                     ),
@@ -610,48 +610,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 10),
             
-            if (isDiaryEmpty) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.02),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.04)),
-                ),
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/benvenuto.png',
-                      height: 160,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1C1C24),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: accentCyan.withOpacity(0.2)),
-                      ),
-                      child: Text(
-                        context.tr('Ciao! Pronto a registrare i tuoi pasti di oggi? Usa la stima con IA o scansiona un codice!'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ] else ...[
-              _buildMealSection(context, 'Colazione', currentDay.meals.firstWhere((m) => m.name == 'Colazione', orElse: () => MealEntity()), appState),
-              _buildMealSection(context, 'Pranzo', currentDay.meals.firstWhere((m) => m.name == 'Pranzo', orElse: () => MealEntity()), appState),
-              _buildMealSection(context, 'Cena', currentDay.meals.firstWhere((m) => m.name == 'Cena', orElse: () => MealEntity()), appState),
-              _buildMealSection(context, 'Spuntini', currentDay.meals.firstWhere((m) => m.name == 'Spuntini', orElse: () => MealEntity()), appState),
-            ],
+            _buildMealSection(context, 'Colazione', currentDay.meals.firstWhere((m) => m.name == 'Colazione', orElse: () => MealEntity()), appState),
+            _buildMealSection(context, 'Pranzo', currentDay.meals.firstWhere((m) => m.name == 'Pranzo', orElse: () => MealEntity()), appState),
+            _buildMealSection(context, 'Cena', currentDay.meals.firstWhere((m) => m.name == 'Cena', orElse: () => MealEntity()), appState),
+            _buildMealSection(context, 'Spuntini', currentDay.meals.firstWhere((m) => m.name == 'Spuntini', orElse: () => MealEntity()), appState),
 
             const SizedBox(height: 24),
 
@@ -1287,50 +1249,191 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
     }
   }
 
+  Widget _buildEditMacroRow(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  void _showEstimatedFoodInfo(BuildContext context, Food food) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF16161D),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                ),
+                const SizedBox(height: 20),
+                Text(food.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                if (food.brand != null && food.brand!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(food.brand!, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                ],
+                const SizedBox(height: 24),
+                const Text('Valori nutrizionali per 100g:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildMiniMacroForInfo('Kcal', '${food.caloriesPer100g.toInt()}', const Color(0xFF00FFC2)),
+                    _buildMiniMacroForInfo('Prot', '${food.proteinsPer100g.toStringAsFixed(1)}g', const Color(0xFFFF007F)),
+                    _buildMiniMacroForInfo('Carb', '${food.carbsPer100g.toStringAsFixed(1)}g', const Color(0xFFFFD700)),
+                    _buildMiniMacroForInfo('Gras', '${food.fatsPer100g.toStringAsFixed(1)}g', const Color(0xFF00E676)),
+                    _buildMiniMacroForInfo('Fibr', '${food.fibersPer100g.toStringAsFixed(1)}g', Colors.cyan),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMiniMacroForInfo(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   void _editItemGrams(int index) {
     final item = _estimatedItems[index];
-    final controller = TextEditingController(text: item.amountGrams.toInt().toString());
+    double amount = item.amountGrams;
+    final textController = TextEditingController(text: item.amountGrams.toInt().toString());
+    const accentCyan = Color(0xFF00FFC2);
+    const accentPink = Color(0xFFFF007F);
     
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1B1B22),
-          title: Text('Modifica Grammi per ${item.food.name}', style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              suffixText: 'g',
-              suffixStyle: TextStyle(color: Colors.white54),
-              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF00FFC2))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final cal = (item.food.caloriesPer100g * amount) / 100;
+          final prot = (item.food.proteinsPer100g * amount) / 100;
+          final carbs = (item.food.carbsPer100g * amount) / 100;
+          final fats = (item.food.fatsPer100g * amount) / 100;
+          final fibers = (item.food.fibersPer100g * amount) / 100;
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF16161D),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.edit, color: accentCyan, size: 18),
+                    SizedBox(width: 8),
+                    Text('Modifica quantità', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.food.name,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+                ),
+              ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annulla', style: TextStyle(color: Colors.white54)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: textController,
+                    keyboardType: TextInputType.number,
+                    autofocus: false,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                    decoration: InputDecoration(
+                      labelText: 'Quantità (g)',
+                      labelStyle: const TextStyle(color: Colors.white60),
+                      suffixText: 'g',
+                      suffixStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.04),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    ),
+                    onChanged: (val) => setDialogState(() => amount = double.tryParse(val) ?? 0.0),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    children: [5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) => ActionChip(
+                      label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        textController.text = g.toString();
+                        setDialogState(() => amount = g.toDouble());
+                      },
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Valori calcolati:', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  _buildEditMacroRow('Calorie', '${cal.toStringAsFixed(1)} kcal', accentCyan),
+                  _buildEditMacroRow('Proteine', '${prot.toStringAsFixed(1)} g', accentPink),
+                  _buildEditMacroRow('Carbs', '${carbs.toStringAsFixed(1)} g', const Color(0xFFFFD700)),
+                  _buildEditMacroRow('Grassi', '${fats.toStringAsFixed(1)} g', const Color(0xFF00E676)),
+                  _buildEditMacroRow('Fibre', '${fibers.toStringAsFixed(1)} g', Colors.cyan),
+                ],
+              ),
             ),
-            TextButton(
-              onPressed: () {
-                final double? newGrams = double.tryParse(controller.text);
-                if (newGrams != null && newGrams > 0) {
+            actionsPadding: const EdgeInsets.all(16),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annulla', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+              ),
+              ElevatedButton(
+                onPressed: amount <= 0 ? null : () {
                   setState(() {
                     _estimatedItems[index] = MealItem(
                       food: item.food,
-                      amountGrams: newGrams,
+                      amountGrams: amount,
                       targetMeal: item.targetMeal,
                     );
                   });
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Salva', style: TextStyle(color: Color(0xFF00FFC2), fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
+                  Navigator.pop(ctx);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentCyan,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Salva', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -1453,7 +1556,7 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                 child: Column(
                   children: [
                     Image.asset(
-                      'assets/avviso.png',
+                      'assets/avviso_clear.png',
                       height: 100,
                       fit: BoxFit.contain,
                     ),
@@ -1645,7 +1748,13 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                             ),
                           ),
                           onPressed: () {
+                            if (_isListening) {
+                              _speechToText.cancel();
+                            }
                             setState(() {
+                              _isListening = false;
+                              _dictationInitialText = "";
+                              _dictationLastWords = "";
                               _textController.clear();
                               _estimatedItems = [];
                               _error = null;
@@ -1712,7 +1821,7 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                   child: Column(
                     children: [
                       Image.asset(
-                        'assets/thinking.png',
+                        'assets/thinking_clear.png',
                         height: 130,
                         fit: BoxFit.contain,
                       ),
@@ -1797,7 +1906,11 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                               Row(
                                 children: [
                                   Text('${item.calories.toInt()} kcal', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.info_outline, color: accentCyan, size: 18),
+                                    onPressed: () => _showEstimatedFoodInfo(context, item.food),
+                                    constraints: const BoxConstraints(),
+                                  ),
                                   IconButton(
                                     icon: const Icon(Icons.edit, color: accentCyan, size: 18),
                                     onPressed: () => _editItemGrams(index),

@@ -867,7 +867,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
               child: Row(
                 children: [
                   Image.asset(
-                    'assets/avviso.png',
+                    'assets/avviso_clear.png',
                     height: 50,
                     fit: BoxFit.contain,
                   ),
@@ -900,7 +900,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/avviso.png',
+              'assets/avviso_clear.png',
               height: 120,
               fit: BoxFit.contain,
             ),
@@ -983,7 +983,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
               child: Column(
                 children: [
                   Image.asset(
-                    'assets/thinking.png',
+                    'assets/thinking_clear.png',
                     height: 120,
                     fit: BoxFit.contain,
                   ),
@@ -1153,7 +1153,7 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
               child: Row(
                 children: [
                   Image.asset(
-                    'assets/avviso.png',
+                    'assets/avviso_clear.png',
                     height: 50,
                     fit: BoxFit.contain,
                   ),
@@ -2021,7 +2021,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Image.asset(
-                        'assets/thinking.png',
+                        'assets/thinking_clear.png',
                         height: 140,
                         fit: BoxFit.contain,
                       ),
