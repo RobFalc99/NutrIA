@@ -1,101 +1,121 @@
-# NutrIA 🍎📱
+<div align="center">
 
-<p align="center">
-  <img src="assets/logo.png" alt="NutrIA Logo" width="180"/>
-</p>
+  <img src="assets/logo.png" width="140" alt="NutrIA Mascot Logo" style="border-radius: 20px;" />
 
-**NutrIA** is an advanced Flutter application for tracking nutrients and calories, designed to offer a premium, responsive user experience supported by artificial intelligence (Google Gemini). The app merges the precision of manual tracking with the speed of AI, allowing users to log entire meals or days with a single sentence or photo.
+  # NutrIA 🦦🥗
+  ### *Il Diario Nutrizionale Intelligente potenziato dall'Intelligenza Artificiale*
 
----
+  [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
+  [![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
+  [![Gemini AI](https://img.shields.io/badge/AI-Google%20Gemini%202.0-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev)
+  [![Isar Database](https://img.shields.io/badge/Database-Isar%20NoSQL-00B4D8?style=for-the-badge)](https://isar.dev)
+  [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-## 🌟 Key Features
+  <p align="center">
+    <b>Traccia calorie, macronutrienti e pasti in pochi secondi grazie all'IA.</b><br>
+    NutrIA unisce la precisione del tracking manuale alla velocità dell'Intelligenza Artificiale (Google Gemini): descrivi un pasto a voce, scatta una foto al piatto o inquadra la tabella nutrizionale per registrare tutto all'istante.
+  </p>
 
-### 1. 🪄 AI Meal Logger (Text, Image, and Voice)
-* **Whole Meal Estimation:** Enter a text description (e.g., *"Tuna pasta about 100g, 10g of olive oil, and 20g of parmesan"*) or snap/upload a photo of the meal. Gemini AI will estimate the weight of the ingredients and their nutritional values.
-* **"Whole Day" Mode:** Describe your entire day's meals in a single sentence (e.g., *"For breakfast an apple and rusks, for lunch 80g of rice"*). The AI extracts the ingredients and automatically distributes them to their respective meals of the day (Breakfast, Lunch, Dinner, Snacks).
-* **Voice Dictation:** Integrated microphone support to log meals using speech-to-text.
-* **Quick Clear Button (C):** Clean up the entered text box and the currently estimated food items instantly.
-
-### 2. 🔍 Advanced Food Scanner
-* **Nutrition Table Scanner:** Take a photo or select an image from your gallery of the nutrition facts table on the back of any packaging. The AI automatically extracts calories and macronutrients per 100g, pre-filling the new food form.
-* **Barcode Reader:** Scan a product's barcode (or upload a photo from your gallery) to instantly query the online database of **Open Food Facts**.
-
-### 3. 📊 Dashboard & Nutrition Diary
-* **Macro Monitoring:** Track your target calories, proteins, carbohydrates, fats, and fibers in real-time, displaying remaining macros.
-* **Water Tracker:** Log your daily water intake with quick buttons (with quick chips for 5g, 10g, and 25g in quantity dialogs).
-* **80/20 Rule:** Enable the 80/20 mode to exclude untracked days (cheat days) from the calculation of weekly averages.
-* **Historical Mini-Calendar:** Navigate quickly to previous days to view or edit your diary.
-
-### 4. 🍎 Food Library
-* **Saved Foods (Personal Library):** Edit any saved food item (name, brand, macros) via a handy edit pencil icon.
-* **Web Search:** Search for any food item in the Open Food Facts database in a robust and optimized way.
-* **New Food:** Manually create new food items with name, brand, macros, calories, and fibers, with a streamlined UI.
-* **Food History:** Displays recently used foods. The history limit defaults to 100 items but can be customized in settings.
-
-### 5. ⚙️ Settings & Customizable Startup Screen
-* Configure the application to start directly on:
-  * **Dashboard (Home)**
-  * **Food Library** (selecting the default tab: *Saved*, *Web*, *New*, or *History*)
-  * **AI Meal Logger** (starting the dialog pre-set to *"Whole day"*)
-* Full support for system **QuickActions** (long-press on the app icon) and home screen **Widgets**.
+</div>
 
 ---
 
-## 🛠️ Tech Stack
+## 📱 Screenshots dell'Applicazione
 
-* **Framework:** [Flutter](https://flutter.dev) (Dart)
-* **Local Database:** [Isar Database](https://isar.dev) (high-performance NoSQL database for Flutter)
-* **Artificial Intelligence:** [Google Generative AI SDK](https://pub.dev/packages/google_generative_ai) (Gemini 2.0 Flash Lite / custom models)
-* **Food Database Integration:** [Open Food Facts API](https://world.openfoodfacts.org)
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="33%">
+        <b>📊 Dashboard Nutrizionale</b><br><br>
+        <img src="assets/screenshots/dashboard.jpg" width="280" alt="NutrIA Dashboard" /><br><br>
+        <em>Ring calorie giornaliere, barre macronutrienti (P/C/F), water tracker e pasti suddivisi.</em>
+      </td>
+      <td align="center" width="33%">
+        <b>🪄 AI Meal Logger (Gemini)</b><br><br>
+        <img src="assets/screenshots/ai_logger.jpg" width="280" alt="AI Meal Logger" /><br><br>
+        <em>Riconoscimento ingredienti da testo o voce con calcolo immediato di porzioni e grammature.</em>
+      </td>
+      <td align="center" width="33%">
+        <b>📷 Scanner OCR & Barcode</b><br><br>
+        <img src="assets/screenshots/scanner.jpg" width="280" alt="Food Scanner" /><br><br>
+        <em>Scansione tabelle nutrizionali con realtà aumentata e integrazione Open Food Facts.</em>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
+## 🌟 Funzionalità Principali
+
+### 🪄 1. AI Meal Logger Multimodale (Testo, Foto e Voce)
+* **Stima Intelligente del Piatto:** Inserisci descrizioni testuali libere (*es. "100g pasta al salmone, 15g olio EVO e una mela"*) o scatta una foto al piatto. Gemini AI calcolerà automaticamente ingredienti, grammature e valori nutrizionali.
+* **Modalità "Intera Giornata":** Ditta o scrivi l'intera giornata in una frase (*es. "Colazione con fette biscottate e marmellata, a pranzo 80g di riso e pollo"*). L'IA distribuisce automaticamente i cibi nei pasti corretti (Colazione, Pranzo, Cena, Snack).
+* **Dettatura Vocale Integrata:** Microfono incorporato per registrare gli alimenti al volo senza digitare.
+
+### 🔍 2. Scanner Avanzato di Alimenti & OCR Tabelle
+* **Scanner Tabella Nutrizionale (OCR):** Inquadra la tabella nutrizionale sul retro di qualsiasi confezione. L'IA estrae all'istante calorie, proteine, carboidrati, grassi e fibre per 100g.
+* **Lettore Barcode EAN:** Scansiona il codice a barre del prodotto per interrogare in tempo reale il database globale di **Open Food Facts**.
+
+### 📊 3. Dashboard e Monitoraggio Quotidiano
+* **Monitoraggio Macro in Tempo Reale:** Calcolo dinamico di calorie rimanenti e target per Proteine, Carboidrati, Grassi e Fibre.
+* **Water Tracker Integrato:** Registrazione rapida dell'assunzione di acqua con chip veloci (+250ml, +500ml).
+* **Regola 80/20 (Cheat Days):** Modalità avanzata per escludere i giorni sgarro non tracciati dal calcolo delle medie settimanali.
+* **Mini-Calendario Storico:** Navigazione rapida tra i giorni passati per consultare o modificare il diario.
+
+### 🍎 4. Libreria Alimenti Personale & Database Online
+* **Alimenti Salvati & Preferiti:** Modifica rapida di nome, marca e macronutrienti con storico personalizzato.
+* **Ricerca Web Open Food Facts:** Accesso istantaneo a milioni di prodotti alimentari verificati.
+* **Creazione Alimenti Manuale:** Form semplificato per creare cibi custom con calcolo automatico kcal da grammature.
+
+---
+
+## 🛠️ Stack Tecnologico
+
+* **Framework:** [Flutter](https://flutter.dev) (Dart `>= 3.11.4`)
+* **Local Database:** [Isar Database](https://isar.dev) (database NoSQL ad altissime prestazioni per Flutter)
+* **Intelligenza Artificiale:** [Google Generative AI SDK](https://pub.dev/packages/google_generative_ai) (Gemini 2.0 Flash / Pro)
+* **Database Alimenti:** [Open Food Facts API](https://world.openfoodfacts.org)
 * **State Management:** [Provider](https://pub.dev/packages/provider)
-* **Native Integration:** `QuickActions` for icon shortcuts and `MethodChannel` for system widget updates.
+* **Integrazioni Native:** `QuickActions` per scorciatoie su icona app e `MethodChannel` per widget di sistema.
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Come Eseguire il Progetto
 
-### Prerequisites
-* Flutter SDK (minimum Dart SDK version 3.11.4)
-* Android Studio / Xcode
+### Prerequisiti
+* [Flutter SDK](https://flutter.dev/docs/get-started/install) (versione `>= 3.11.4`)
+* [Google AI Studio API Key](https://aistudio.google.com/) per abilitare le funzionalità di Gemini AI.
 
-### Local Configuration
-1. Clone the repository:
+### Installazione
+
+1. **Clona la repository:**
    ```bash
    git clone https://github.com/RobFalc99/NutrIA.git
    cd NutrIA
    ```
-2. Install dependencies:
+
+2. **Installa le dipendenze:**
    ```bash
    flutter pub get
    ```
-3. Generate Isar schema and support files:
-   ```bash
-   dart run build_runner build --delete-conflicting-outputs
-   ```
-4. Run the application on a connected device or emulator:
+
+3. **Configura la chiave API di Gemini:**
+   Inserisci la tua chiave `GEMINI_API_KEY` nelle impostazioni dell'app o nel file di configurazione ambiente.
+
+4. **Avvia l'applicazione:**
    ```bash
    flutter run
    ```
 
-### AI Configuration
-To enable meal estimation and visual scanners:
-1. Obtain a free Gemini API key from [Google AI Studio](https://aistudio.google.com/).
-2. Open the **Profile** tab in the app.
-3. Paste your key into the **Gemini API Key** field and save the configuration.
+---
+
+## 📄 Licenza
+
+Distribuito sotto licenza **MIT**. Consulta il file `LICENSE` per maggiori informazioni.
 
 ---
 
-## 📦 Automatic Release Pipeline
-The project includes the `./build_and_upload.sh` script which automates:
-1. Running the unit test suite.
-2. Compilating the release APK (`app-release.apk`).
-3. Committing, pushing, and tagging the release on GitHub.
-4. Uploading the compiled APK to GitHub Releases.
-5. Sending a Telegram notification with the download link and QR code.
-
----
-
-## 🔒 Security & Privacy
-* **Local Data:** All your diaries, personal food items, and goals are saved locally on your device via Isar Database.
-* **Gemini API Key:** The API key is stored securely on your device and sent directly to Google Generative AI APIs, without passing through intermediate servers.
-* **Clean Git Repository:** Sensitive credentials and publish tokens are protected via un-tracked local configuration files (like `.env`) and excluded in `.gitignore`.
+<div align="center">
+  Sviluppato con dedizione per la salute e il benessere da <b>Roberto Falcone</b> 🦦🍏
+</div>
