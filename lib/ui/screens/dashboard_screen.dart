@@ -10,6 +10,7 @@ import '../../providers/translations.dart';
 import '../../providers/theme_provider.dart';
 import '../../data/local/entities/daily_log_entity.dart';
 import '../../domain/models.dart';
+import 'quick_food_logger_sheet.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -43,18 +44,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '${context.tr(weekdays[date.weekday - 1])} ${date.day} ${context.tr(months[date.month - 1])}';
   }
 
-  // Mostra il foglio modale con le opzioni di aggiunta
+  // Mostra il foglio di inserimento pasti rapido a zero-friction
   void _showAddMealOptions(BuildContext context, String defaultMeal) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF16161D),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return AddMealOptionsSheet(defaultMeal: defaultMeal);
-      },
-    );
+    QuickFoodLoggerSheet.show(context, initialMeal: defaultMeal);
   }
 
   // Dialogo modifica quantità alimento già inserito
@@ -123,18 +115,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onChanged: (val) => setDialogState(() => amount = double.tryParse(val) ?? 0.0),
                   ),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    children: [5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) => ActionChip(
-                      label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                      backgroundColor: Colors.white.withOpacity(0.06),
-                      padding: EdgeInsets.zero,
-                      onPressed: () {
-                        textController.text = g.toString();
-                        setDialogState(() => amount = g.toDouble());
-                      },
-                    )).toList(),
-                  ),
+                  Builder(builder: (ctx) {
+                    final matchingCustom = appState.customFoods.cast<Food?>().firstWhere(
+                      (f) => f?.id == item.foodId || f?.name.toLowerCase() == item.foodName?.toLowerCase(),
+                      orElse: () => null,
+                    );
+                    final customPortion = matchingCustom?.customServingGrams?.toInt();
+                    return Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (customPortion != null)
+                          ActionChip(
+                            avatar: const Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
+                            label: Text('Porzione (${customPortion}g)', style: const TextStyle(color: Color(0xFF00FFC2), fontWeight: FontWeight.bold, fontSize: 11)),
+                            backgroundColor: const Color(0xFF00FFC2).withOpacity(0.12),
+                            side: const BorderSide(color: Color(0xFF00FFC2)),
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              textController.text = customPortion.toString();
+                              setDialogState(() => amount = customPortion.toDouble());
+                            },
+                          ),
+                        ...[5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) => ActionChip(
+                          label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                          backgroundColor: Colors.white.withOpacity(0.06),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            textController.text = g.toString();
+                            setDialogState(() => amount = g.toDouble());
+                          },
+                        )),
+                      ],
+                    );
+                  }),
                   const SizedBox(height: 16),
                   const Text('Valori calcolati:', style: TextStyle(color: Colors.white54, fontSize: 12)),
                   const SizedBox(height: 8),
@@ -1383,18 +1397,40 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                     onChanged: (val) => setDialogState(() => amount = double.tryParse(val) ?? 0.0),
                   ),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    children: [5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) => ActionChip(
-                      label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                      backgroundColor: Colors.white.withOpacity(0.06),
-                      padding: EdgeInsets.zero,
-                      onPressed: () {
-                        textController.text = g.toString();
-                        setDialogState(() => amount = g.toDouble());
-                      },
-                    )).toList(),
-                  ),
+                  Builder(builder: (ctx) {
+                    final matchingCustom = appState.customFoods.cast<Food?>().firstWhere(
+                      (f) => f?.id == item.foodId || f?.name.toLowerCase() == item.foodName?.toLowerCase(),
+                      orElse: () => null,
+                    );
+                    final customPortion = matchingCustom?.customServingGrams?.toInt();
+                    return Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (customPortion != null)
+                          ActionChip(
+                            avatar: const Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
+                            label: Text('Porzione (${customPortion}g)', style: const TextStyle(color: Color(0xFF00FFC2), fontWeight: FontWeight.bold, fontSize: 11)),
+                            backgroundColor: const Color(0xFF00FFC2).withOpacity(0.12),
+                            side: const BorderSide(color: Color(0xFF00FFC2)),
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              textController.text = customPortion.toString();
+                              setDialogState(() => amount = customPortion.toDouble());
+                            },
+                          ),
+                        ...[5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) => ActionChip(
+                          label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                          backgroundColor: Colors.white.withOpacity(0.06),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            textController.text = g.toString();
+                            setDialogState(() => amount = g.toDouble());
+                          },
+                        )),
+                      ],
+                    );
+                  }),
                   const SizedBox(height: 16),
                   const Text('Valori calcolati:', style: TextStyle(color: Colors.white54, fontSize: 12)),
                   const SizedBox(height: 8),

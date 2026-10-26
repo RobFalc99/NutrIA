@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../domain/models.dart';
 
 class OnlineDatabaseService {
-  // Database in-memory simulato per i cibi personali
+  // Database in-memory simulato per i cibi personali e ricette
   static final List<Food> _mockOnlineFoods = [
     Food(
       id: 'online_1',
@@ -17,6 +17,8 @@ class OnlineDatabaseService {
       fibersPer100g: 3.5,
       isCustom: true,
       isOnline: true,
+      customServingGrams: 50.0,
+      customServingName: 'Fetta',
     ),
     Food(
       id: 'online_2',
@@ -29,6 +31,8 @@ class OnlineDatabaseService {
       fibersPer100g: 0.8,
       isCustom: true,
       isOnline: true,
+      customServingGrams: 250.0,
+      customServingName: 'Porzione',
     ),
   ];
 
@@ -57,6 +61,12 @@ class OnlineDatabaseService {
             fibersPer100g: (item['fibersPer100g'] as num).toDouble(),
             isCustom: true,
             isOnline: true,
+            customServingGrams: (item['customServingGrams'] as num?)?.toDouble(),
+            customServingName: item['customServingName'] as String?,
+            isRecipe: item['isRecipe'] as bool? ?? false,
+            recipeIngredientsJson: item['recipeIngredientsJson'] as String?,
+            recipeTotalWeightGrams: (item['recipeTotalWeightGrams'] as num?)?.toDouble(),
+            recipeServingsCount: (item['recipeServingsCount'] as num?)?.toDouble(),
           );
         }).toList();
         _mockOnlineFoods.clear();
@@ -84,6 +94,12 @@ class OnlineDatabaseService {
                 fibersPer100g: (foodMap['fibersPer100g'] as num).toDouble(),
                 isCustom: foodMap['isCustom'] as bool? ?? true,
                 isOnline: foodMap['isOnline'] as bool? ?? true,
+                customServingGrams: (foodMap['customServingGrams'] as num?)?.toDouble(),
+                customServingName: foodMap['customServingName'] as String?,
+                isRecipe: foodMap['isRecipe'] as bool? ?? false,
+                recipeIngredientsJson: foodMap['recipeIngredientsJson'] as String?,
+                recipeTotalWeightGrams: (foodMap['recipeTotalWeightGrams'] as num?)?.toDouble(),
+                recipeServingsCount: (foodMap['recipeServingsCount'] as num?)?.toDouble(),
               ),
               amountGrams: (i['amountGrams'] as num).toDouble(),
             );
@@ -121,6 +137,12 @@ class OnlineDatabaseService {
         'carbsPer100g': f.carbsPer100g,
         'fatsPer100g': f.fatsPer100g,
         'fibersPer100g': f.fibersPer100g,
+        'customServingGrams': f.customServingGrams,
+        'customServingName': f.customServingName,
+        'isRecipe': f.isRecipe,
+        'recipeIngredientsJson': f.recipeIngredientsJson,
+        'recipeTotalWeightGrams': f.recipeTotalWeightGrams,
+        'recipeServingsCount': f.recipeServingsCount,
       }).toList();
       await foodsFile.writeAsString(json.encode(list));
     } catch (e) {
@@ -148,6 +170,12 @@ class OnlineDatabaseService {
             'fibersPer100g': i.food.fibersPer100g,
             'isCustom': i.food.isCustom,
             'isOnline': i.food.isOnline,
+            'customServingGrams': i.food.customServingGrams,
+            'customServingName': i.food.customServingName,
+            'isRecipe': i.food.isRecipe,
+            'recipeIngredientsJson': i.food.recipeIngredientsJson,
+            'recipeTotalWeightGrams': i.food.recipeTotalWeightGrams,
+            'recipeServingsCount': i.food.recipeServingsCount,
           }
         }).toList()
       }).toList();
@@ -160,17 +188,17 @@ class OnlineDatabaseService {
   /// Recupera tutti gli alimenti personali salvati in cloud / locale
   Future<List<Food>> getCustomFoods() async {
     await _ensureLoaded();
-    // Simula ritardo di rete (HTTP call)
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 300));
     return List.from(_mockOnlineFoods);
   }
 
   /// Salva o modifica un alimento personale in cloud / locale
   Future<bool> saveCustomFood(Food food) async {
     await _ensureLoaded();
-    await Future.delayed(const Duration(milliseconds: 800));
-    final isExisting = food.id.startsWith('online_');
-    final finalId = isExisting ? food.id : 'online_${DateTime.now().millisecondsSinceEpoch}';
+    await Future.delayed(const Duration(milliseconds: 300));
+    final isExisting = food.id.startsWith('online_') || food.id.startsWith('recipe_');
+    final prefix = food.isRecipe ? 'recipe_' : 'online_';
+    final finalId = isExisting ? food.id : '$prefix${DateTime.now().millisecondsSinceEpoch}';
     
     final onlineFood = Food(
       id: finalId,
@@ -183,6 +211,12 @@ class OnlineDatabaseService {
       fibersPer100g: food.fibersPer100g,
       isCustom: true,
       isOnline: true,
+      customServingGrams: food.customServingGrams,
+      customServingName: food.customServingName,
+      isRecipe: food.isRecipe,
+      recipeIngredientsJson: food.recipeIngredientsJson,
+      recipeTotalWeightGrams: food.recipeTotalWeightGrams,
+      recipeServingsCount: food.recipeServingsCount,
     );
 
     if (isExisting) {
@@ -193,10 +227,10 @@ class OnlineDatabaseService {
     return true;
   }
 
-  /// Elimina un alimento personale
+  /// Elimina un alimento o ricetta personale
   Future<bool> deleteCustomFood(String foodId) async {
     await _ensureLoaded();
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
     _mockOnlineFoods.removeWhere((f) => f.id == foodId);
     await _saveFoodsToDisk();
     return true;
@@ -205,20 +239,26 @@ class OnlineDatabaseService {
   /// Recupera i pasti personali salvati in cloud (es. ricette composte)
   Future<List<Meal>> getCustomMeals() async {
     await _ensureLoaded();
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 300));
     return List.from(_mockOnlineMeals);
   }
 
   /// Salva un pasto composto (ricetta) in cloud / locale
   Future<bool> saveCustomMeal(Meal meal) async {
     await _ensureLoaded();
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 400));
+    final isExisting = meal.id.startsWith('meal_online_');
+    final finalId = isExisting ? meal.id : 'meal_online_${DateTime.now().millisecondsSinceEpoch}';
+
     final onlineMeal = Meal(
-      id: 'meal_online_${DateTime.now().millisecondsSinceEpoch}',
+      id: finalId,
       name: meal.name,
       items: meal.items,
       isCustomOnline: true,
     );
+    if (isExisting) {
+      _mockOnlineMeals.removeWhere((m) => m.id == finalId);
+    }
     _mockOnlineMeals.add(onlineMeal);
     await _saveMealsToDisk();
     return true;

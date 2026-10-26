@@ -3,33 +3,82 @@ import 'dart:typed_data';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../domain/models.dart';
 
+class ParsedRecipe {
+  final String title;
+  final double? totalCookedWeightGrams;
+  final double? servingsCount;
+  final double? servingWeightGrams;
+  final List<RecipeIngredient> ingredients;
+
+  ParsedRecipe({
+    required this.title,
+    this.totalCookedWeightGrams,
+    this.servingsCount,
+    this.servingWeightGrams,
+    required this.ingredients,
+  });
+
+  double get rawWeightGrams => ingredients.fold(0.0, (sum, i) => sum + i.amountGrams);
+  double get totalCalories => ingredients.fold(0.0, (sum, i) => sum + i.calories);
+  double get totalProteins => ingredients.fold(0.0, (sum, i) => sum + i.proteins);
+  double get totalCarbs => ingredients.fold(0.0, (sum, i) => sum + i.carbs);
+  double get totalFats => ingredients.fold(0.0, (sum, i) => sum + i.fats);
+  double get totalFibers => ingredients.fold(0.0, (sum, i) => sum + i.fibers);
+
+  // Calcoli per 100g basati sul peso finale cotto (se presente) o sul peso crudo totale
+  double get effectiveTotalWeight {
+    if (totalCookedWeightGrams != null && totalCookedWeightGrams! > 0) {
+      return totalCookedWeightGrams!;
+    }
+    return rawWeightGrams > 0 ? rawWeightGrams : 100.0;
+  }
+
+  double get caloriesPer100g => (totalCalories * 100) / effectiveTotalWeight;
+  double get proteinsPer100g => (totalProteins * 100) / effectiveTotalWeight;
+  double get carbsPer100g => (totalCarbs * 100) / effectiveTotalWeight;
+  double get fatsPer100g => (totalFats * 100) / effectiveTotalWeight;
+  double get fibersPer100g => (totalFibers * 100) / effectiveTotalWeight;
+
+  // Calcolo porzione effettiva
+  double get effectiveServingWeight {
+    if (servingWeightGrams != null && servingWeightGrams! > 0) {
+      return servingWeightGrams!;
+    }
+    if (servingsCount != null && servingsCount! > 0 && effectiveTotalWeight > 0) {
+      return effectiveTotalWeight / servingsCount!;
+    }
+    return 100.0;
+  }
+
+  double get effectiveServingsCount {
+    if (servingsCount != null && servingsCount! > 0) {
+      return servingsCount!;
+    }
+    if (servingWeightGrams != null && servingWeightGrams! > 0 && effectiveTotalWeight > 0) {
+      return effectiveTotalWeight / servingWeightGrams!;
+    }
+    return 1.0;
+  }
+}
+
 class GeminiService {
   final String apiKey;
   final String modelName;
 
-  GeminiService({required this.apiKey, this.modelName = 'gemini-2.0-flash-lite'});
+  GeminiService({required this.apiKey, this.modelName = 'gemini-2.5-flash'});
 
   /// Analizza una descrizione testuale e restituisce una lista di MealItem.
-  /// Usiamo un prompt strutturato tramite systemInstruction per far restituire al modello solo JSON.
   Future<List<MealItem>> analyzeTextToMeals(String text) async {
     final systemPrompt = '''
 Sei un nutrizionista esperto ed estremamente preciso.
 Il tuo compito è analizzare la descrizione del pasto (o dei pasti dell'intera giornata) fornito dall'utente ed estrarre i singoli ingredienti/alimenti, stimando la loro grammatura ed i macronutrienti riferiti a 100g.
-Inoltre, associa ogni alimento al pasto di appartenenza tramite il campo "targetMeal" (valori ammessi: "Colazione", "Pranzo", "Cena", "Spuntini"). Ad esempio, se l'utente dice "a colazione ho mangiato riso, a pranzo uova", riserva "Colazione" per il riso e "Pranzo" per le uova. Se non diversamente indicato, imposta "targetMeal" su un valore predefinito coerente con l'orario o con il contesto.
+Inoltre, associa ogni alimento al pasto di appartenenza tramite il campo "targetMeal" (valori ammessi: "Colazione", "Pranzo", "Cena", "Spuntini").
 
-REGOLE TASSATIVE PER LA STIMA DELLA GRAMMATURA (amountGrams):
-1. SE L'UTENTE SPECIFICA UNA GRAMMATURA O QUANTITÀ NUMERICA CHIARA (es. "100g di pasta", "pasta 80g", "80 grammi", "tonno da 80g", "un uovo da 60 grammi"), devi ASSOLUTAMENTE impostare il campo 'amountGrams' a quel valore preciso (es. 100.0, 80.0, 60.0). NON alterare né stimare valori diversi quando sono esplicitati!
-2. SE L'UTENTE NON SPECIFICA LA GRAMMATURA (es. "un piatto di pasta", "scatoletta di tonno", "un uovo", "un cucchiaio d'olio"), devi stimare una grammatura altamente realistica basandoti sulle porzioni standard della cucina italiana:
-   - Un piatto di pasta o riso standard: ~80g a 100g (peso a crudo).
-   - Un cucchiaio di olio extravergine d'oliva: ~10g.
-   - Un uovo intero medio: ~60g.
-   - Una scatoletta di tonno classica: ~80g (o ~52g sgocciolato).
-   - Una fetta di pane comune: ~30g a 40g.
-   - Un petto di pollo comune: ~120g a 150g.
+REGOLE PER LA STIMA DELLA GRAMMATURA:
+1. Se specificata chiaramente ("100g di pasta", "pasta 80g"), mantieni quel valore preciso.
+2. Se non specificata, stima una porzione standard realistica (pasta ~80-100g cruda, olio EVO ~10g, uovo ~60g, ecc.).
 
-Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
-
-Il formato JSON richiesto deve essere esattamente questo:
+Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdown.
 [
   {
     "name": "Nome Alimento in Italiano",
@@ -67,34 +116,8 @@ Il formato JSON richiesto deve essere esattamente questo:
   Future<List<MealItem>> analyzeImageToMeals(List<int> imageBytes, {String? additionalText}) async {
     final systemPrompt = '''
 Sei un nutrizionista esperto ed estremamente preciso.
-Il tuo compito è analizzare l'immagine del pasto (o dei pasti dell'intera giornata) fornito dall'utente (e considerare qualsiasi eventuale testo descrittivo aggiuntivo) ed estrarre i singoli ingredienti/alimenti, stimando la loro grammatura ed i macronutrienti riferiti a 100g.
-Inoltre, associa ogni alimento al pasto di appartenenza tramite il campo "targetMeal" (valori ammessi: "Colazione", "Pranzo", "Cena", "Spuntini"). Ad esempio, se l'utente dice "a colazione ho mangiato riso, a pranzo uova", riserva "Colazione" per il riso e "Pranzo" per le uova. Se non diversamente indicato, imposta "targetMeal" su un valore predefinito coerente con l'orario o con il contesto.
-
-REGOLE TASSATIVE PER LA STIMA DELLA GRAMMATURA (amountGrams):
-1. SE L'UTENTE SPECIFICA UNA GRAMMATURA O QUANTITÀ NUMERICA CHIARA NEL TESTO AGGIUNTIVO (es. "100g di pasta", "pasta 80g", "80 grammi", "tonno da 80g", "un uovo da 60 grammi"), devi ASSOLUTAMENTE impostare il campo 'amountGrams' a quel valore preciso (es. 100.0, 80.0, 60.0). NON alterare né stimare valori diversi quando sono esplicitati!
-2. SE L'UTENTE NON SPECIFICA LA GRAMMATURA (es. "un piatto di pasta", "scatoletta di tonno", "un uovo", "un cucchiaio d'olio"), devi stimare una grammatura altamente realistica basandoti sull'aspetto visivo e sulle porzioni standard della cucina italiana:
-   - Un piatto di pasta o riso standard: ~80g a 100g (peso a crudo).
-   - Un cucchiaio di olio extravergine d'oliva: ~10g.
-   - Un uovo intero medio: ~60g.
-   - Una scatoletta di tonno classica: ~80g (o ~52g sgocciolato).
-   - Una fetta di pane comune: ~30g a 40g.
-   - Un petto di pollo comune: ~120g a 150g.
-
-Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
-
-Il formato JSON richiesto deve essere esattamente questo:
-[
-  {
-    "name": "Nome Alimento in Italiano",
-    "amountGrams": 150.0,
-    "caloriesPer100g": 120.0,
-    "proteinsPer100g": 10.5,
-    "carbsPer100g": 2.0,
-    "fatsPer100g": 5.0,
-    "fibersPer100g": 1.5,
-    "targetMeal": "Colazione"
-  }
-]
+Analizza l'immagine del pasto ed estrai i singoli alimenti, stimando grammatura e macronutrienti per 100g.
+Rispondi ESCLUSIVAMENTE con un array JSON valido.
 ''';
 
     final model = GenerativeModel(
@@ -105,11 +128,12 @@ Il formato JSON richiesto deve essere esattamente questo:
 
     try {
       final imagePart = DataPart('image/jpeg', Uint8List.fromList(imageBytes));
-      final userPrompt = additionalText ?? 'Analizza questo pasto dell\'immagine.';
-      final response = await model.generateContent([
-        Content.multi([TextPart(userPrompt), imagePart])
-      ]);
-      
+      final contentParts = <Part>[imagePart];
+      if (additionalText != null && additionalText.trim().isNotEmpty) {
+        contentParts.add(TextPart(additionalText));
+      }
+
+      final response = await model.generateContent([Content.multi(contentParts)]);
       if (response.text != null) {
         return _parseJsonToMealItems(response.text!);
       } else {
@@ -121,26 +145,91 @@ Il formato JSON richiesto deve essere esattamente questo:
     }
   }
 
-  /// Analizza una descrizione testuale di un singolo alimento e restituisce un solo Food (riferito a 100g).
-  Future<Food?> analyzeSingleFood(String text) async {
+  /// Analizza un singolo alimento descritto dall'utente
+  Future<Food?> analyzeSingleFood(String query) async {
     final systemPrompt = '''
-Sei un nutrizionista esperto ed estremamente preciso.
-Il tuo compito è analizzare il singolo alimento o ingrediente fornito dall'utente, stimando accuratamente i macronutrienti (calorie, proteine, carboidrati, grassi, fibre) riferiti a 100g di quell'alimento.
-Inoltre, se la descrizione dell'utente contiene o suggerisce una quantità specifica (es. "una mela", "3 uova", "40g di riso", "due cucchiai di olio"), stima il peso complessivo in grammi e inseriscilo nel campo "estimatedAmountGrams". Se non è indicata alcuna quantità, imposta "estimatedAmountGrams" a null.
-Importante: Devi restituire solo ed esclusivamente un singolo alimento.
-
-Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
-
-Il formato JSON richiesto deve essere esattamente questo:
+Sei un nutrizionista esperto. Analizza la descrizione del singolo alimento o prodotto ed estrai nome e valori nutrizionali per 100g.
+Rispondi ESCLUSIVAMENTE con un JSON:
 {
   "name": "Nome Alimento in Italiano",
-  "brand": "Marca se menzionata, altrimenti null",
-  "caloriesPer100g": 120.0,
-  "proteinsPer100g": 10.5,
-  "carbsPer100g": 2.0,
+  "caloriesPer100g": 250.0,
+  "proteinsPer100g": 10.0,
+  "carbsPer100g": 30.0,
   "fatsPer100g": 5.0,
-  "fibersPer100g": 1.5,
-  "estimatedAmountGrams": 40.0
+  "fibersPer100g": 2.0,
+  "customServingGrams": 50.0,
+  "customServingName": "Porzione"
+}
+''';
+
+    final model = GenerativeModel(
+      model: modelName,
+      apiKey: apiKey,
+      systemInstruction: Content.system(systemPrompt),
+    );
+
+    try {
+      final response = await model.generateContent([Content.text(query)]);
+      final text = response.text;
+      if (text == null) return null;
+
+      final jsonStr = _extractLastJsonBlock(text);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+
+      return Food(
+        id: 'ai_single_${DateTime.now().millisecondsSinceEpoch}',
+        name: decoded['name']?.toString() ?? query,
+        caloriesPer100g: _parseDouble(decoded['caloriesPer100g'] ?? 0.0),
+        proteinsPer100g: _parseDouble(decoded['proteinsPer100g'] ?? 0.0),
+        carbsPer100g: _parseDouble(decoded['carbsPer100g'] ?? 0.0),
+        fatsPer100g: _parseDouble(decoded['fatsPer100g'] ?? 0.0),
+        fibersPer100g: _parseDouble(decoded['fibersPer100g'] ?? 0.0),
+        customServingGrams: (decoded['customServingGrams'] as num?)?.toDouble(),
+        customServingName: decoded['customServingName']?.toString(),
+        isCustom: true,
+      );
+    } catch (e) {
+      print('Errore Gemini Single Food Analysis: $e');
+      return null;
+    }
+  }
+
+  /// Recipe Builder: Analizza un prompt ricetta con calcolo porzioni e ingredienti
+  Future<ParsedRecipe> analyzeRecipePrompt(String text) async {
+    final systemPrompt = '''
+Sei un nutrizionista e chef professionista.
+L'utente ti descrive una ricetta, gli ingredienti utilizzati, e opzionalmente:
+- Il peso totale del prodotto finito/cotto (es. 1000g, 1kg)
+- Il numero di porzioni o pezzi (es. 20 pancake, 8 fette)
+- Il peso o grammatura media della singola porzione (es. 50g)
+
+Devi estrarre con la massima precisione:
+1. "title": Nome descrittivo della ricetta in italiano (es. "Pancake all'Avena Proteici")
+2. "totalCookedWeightGrams": peso finale cotto o totale in grammi (numero o null se non specificato)
+3. "servingsCount": numero di porzioni o pezzi totali (numero o null se non specificato)
+4. "servingWeightGrams": peso medio di una porzione in grammi (numero o null se non specificato)
+5. "ingredients": array di ingredienti, ciascuno con:
+   - "name": Nome dell'ingrediente in italiano
+   - "amountGrams": Grammatura dell'ingrediente usato nella ricetta
+   - "caloriesPer100g", "proteinsPer100g", "carbsPer100g", "fatsPer100g", "fibersPer100g": valori nutrizionali per 100g riferiti all'ingrediente.
+
+Rispondi ESCLUSIVAMENTE con un JSON valido nel seguente formato:
+{
+  "title": "Pancake Proteici",
+  "totalCookedWeightGrams": 1000.0,
+  "servingsCount": 20.0,
+  "servingWeightGrams": 50.0,
+  "ingredients": [
+    {
+      "name": "Farina d'avena",
+      "amountGrams": 300.0,
+      "caloriesPer100g": 370.0,
+      "proteinsPer100g": 13.0,
+      "carbsPer100g": 66.0,
+      "fatsPer100g": 6.5,
+      "fibersPer100g": 9.0
+    }
+  ]
 }
 ''';
 
@@ -152,57 +241,77 @@ Il formato JSON richiesto deve essere esattamente questo:
 
     try {
       final response = await model.generateContent([Content.text(text)]);
-      if (response.text != null) {
-        final cleanJson = response.text!.trim();
-        final block = _extractJsonBlock(cleanJson);
-        final item = Map<String, dynamic>.from(json.decode(block));
-        
-        final String name = _findValue(item, ['name', 'nome', 'alimento', 'prodotto']) ?? 'Sconosciuto';
-        final String? brand = _findValue(item, ['brand', 'marca']);
-        final double calories = _parseDouble(_findValue(item, ['caloriesPer100g', 'calories_per_100g', 'calories', 'calorie', 'kcal']) ?? 0.0);
-        final double proteins = _parseDouble(_findValue(item, ['proteinsPer100g', 'proteins_per_100g', 'proteins', 'proteine']) ?? 0.0);
-        final double carbs = _parseDouble(_findValue(item, ['carbsPer100g', 'carbs_per_100g', 'carbs', 'carboidrati']) ?? 0.0);
-        final double fats = _parseDouble(_findValue(item, ['fatsPer100g', 'fats_per_100g', 'fats', 'grassi']) ?? 0.0);
-        final double fibers = _parseDouble(_findValue(item, ['fibersPer100g', 'fibers_per_100g', 'fibers', 'fibre']) ?? 0.0);
-        final double? estimatedAmount = item['estimatedAmountGrams'] != null ? _parseDouble(item['estimatedAmountGrams']) : null;
-
-        return Food(
-          id: 'ai_single_${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
-          name: name,
-          brand: brand,
-          caloriesPer100g: calories,
-          proteinsPer100g: proteins,
-          carbsPer100g: carbs,
-          fatsPer100g: fats,
-          fibersPer100g: fibers,
-          isCustom: true,
-          estimatedAmountGrams: estimatedAmount,
-        );
+      final resText = response.text;
+      if (resText == null || resText.trim().isEmpty) {
+        throw Exception('Risposta vuota da Gemini per la ricetta.');
       }
+
+      final jsonStr = _extractLastJsonBlock(resText);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+
+      final title = decoded['title']?.toString() ?? 'Nuova Ricetta';
+      final totalCookedWeight = (decoded['totalCookedWeightGrams'] as num?)?.toDouble();
+      final servingsCount = (decoded['servingsCount'] as num?)?.toDouble();
+      final servingWeight = (decoded['servingWeightGrams'] as num?)?.toDouble();
+
+      final ingredientsList = <RecipeIngredient>[];
+      final rawIngredients = decoded['ingredients'] as List<dynamic>? ?? [];
+
+      for (final raw in rawIngredients) {
+        if (raw is Map) {
+          final ingMap = Map<String, dynamic>.from(raw);
+          final ingName = ingMap['name']?.toString() ?? 'Ingrediente';
+          final ingAmount = _parseDouble(ingMap['amountGrams'] ?? 100.0);
+          final cal = _parseDouble(ingMap['caloriesPer100g'] ?? 0.0);
+          final prot = _parseDouble(ingMap['proteinsPer100g'] ?? 0.0);
+          final carbs = _parseDouble(ingMap['carbsPer100g'] ?? 0.0);
+          final fats = _parseDouble(ingMap['fatsPer100g'] ?? 0.0);
+          final fibers = _parseDouble(ingMap['fibersPer100g'] ?? 0.0);
+
+          ingredientsList.add(RecipeIngredient(
+            food: Food(
+              id: 'ing_${DateTime.now().microsecondsSinceEpoch}_${ingName.hashCode}',
+              name: ingName,
+              caloriesPer100g: cal,
+              proteinsPer100g: prot,
+              carbsPer100g: carbs,
+              fatsPer100g: fats,
+              fibersPer100g: fibers,
+              isCustom: true,
+            ),
+            amountGrams: ingAmount,
+          ));
+        }
+      }
+
+      return ParsedRecipe(
+        title: title,
+        totalCookedWeightGrams: totalCookedWeight,
+        servingsCount: servingsCount,
+        servingWeightGrams: servingWeight,
+        ingredients: ingredientsList,
+      );
     } catch (e) {
-      print('Errore Gemini Single Food Analysis: $e');
+      print('Errore Gemini Recipe Analysis: $e');
+      rethrow;
     }
-    return null;
   }
 
-  /// Estrae i valori nutrizionali da un'immagine dell'etichetta nutrizionale (macros).
-  Future<Map<String, dynamic>?> analyzeMacroImage(List<int> imageBytes) async {
+  /// Legge una tabella nutrizionale da un'immagine
+  Future<Food?> analyzeMacroImage(List<int> imageBytes) async {
     final systemPrompt = '''
-Sei un assistente IA specializzato nella lettura di etichette nutrizionali.
-Analizza l'immagine fornita (che rappresenta una tabella o etichetta nutrizionale) ed estrai accuratamente i macronutrienti riferiti a 100g o 100ml di prodotto.
-Se nell'etichetta sono presenti sia i valori per 100g che per porzione, estrai ESCLUSIVAMENTE quelli riferiti a 100g (o 100ml).
-
-Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza blocchi di codice markdown (NON inserire ```json o ``` all'inizio o alla fine) e senza alcun testo aggiuntivo prima o dopo il JSON.
-
-Il formato JSON richiesto deve essere esattamente questo:
+Sei un esperto di analisi etichette nutrizionali.
+Estrai i valori nutrizionali per 100g dalla tabella nutrizionale presente nell'immagine.
+Rispondi ESCLUSIVAMENTE con un JSON:
 {
-  "name": "Nome alimento se visibile, altrimenti vuoto",
-  "brand": "Marca se visibile, altrimenti vuoto",
-  "caloriesPer100g": 120.0,
-  "proteinsPer100g": 10.5,
-  "carbsPer100g": 2.0,
-  "fatsPer100g": 5.0,
-  "fibersPer100g": 1.5
+  "name": "Nome Prodotto",
+  "caloriesPer100g": 150.0,
+  "proteinsPer100g": 10.0,
+  "carbsPer100g": 20.0,
+  "fatsPer100g": 3.0,
+  "fibersPer100g": 1.5,
+  "customServingGrams": 40.0,
+  "customServingName": "Porzione"
 }
 ''';
 
@@ -215,95 +324,79 @@ Il formato JSON richiesto deve essere esattamente questo:
     try {
       final imagePart = DataPart('image/jpeg', Uint8List.fromList(imageBytes));
       final response = await model.generateContent([
-        Content.multi([TextPart('Estrai i macro per 100g da questa tabella nutrizionale.'), imagePart])
+        Content.multi([TextPart('Estrai la tabella nutrizionale per 100g da questa etichetta.'), imagePart])
       ]);
 
-      if (response.text != null) {
-        final cleanJson = response.text!.trim();
-        final block = _extractJsonBlock(cleanJson);
-        final decoded = json.decode(block);
-        return Map<String, dynamic>.from(decoded);
-      }
+      final text = response.text;
+      if (text == null) return null;
+
+      final jsonStr = _extractLastJsonBlock(text);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+
+      return Food(
+        id: 'ocr_${DateTime.now().millisecondsSinceEpoch}',
+        name: decoded['name']?.toString() ?? 'Prodotto Etichetta',
+        caloriesPer100g: _parseDouble(decoded['caloriesPer100g'] ?? 0.0),
+        proteinsPer100g: _parseDouble(decoded['proteinsPer100g'] ?? 0.0),
+        carbsPer100g: _parseDouble(decoded['carbsPer100g'] ?? 0.0),
+        fatsPer100g: _parseDouble(decoded['fatsPer100g'] ?? 0.0),
+        fibersPer100g: _parseDouble(decoded['fibersPer100g'] ?? 0.0),
+        customServingGrams: (decoded['customServingGrams'] as num?)?.toDouble(),
+        customServingName: decoded['customServingName']?.toString(),
+        isCustom: true,
+      );
     } catch (e) {
       print('Errore Gemini Macro Label Extraction: $e');
+      return null;
     }
-    return null;
   }
 
-  double _parseDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is num) return value.toDouble();
-    if (value is String) {
-      // Rimuove spazi e caratteri non numerici tranne punti e virgole
-      final cleaned = value.replaceAll(RegExp(r'[^0-9.,]'), '').replaceAll(',', '.');
-      return double.tryParse(cleaned) ?? 0.0;
-    }
-    return 0.0;
-  }
+  /// Estrae il codice a barre numerico da un'immagine
+  Future<String?> extractBarcodeFromImage(List<int> imageBytes) async {
+    final systemPrompt = '''
+Sei un estrattore di codice a barre numerico. Restituisci ESCLUSIVAMENTE le cifre numeriche (es. 8001120003008) o ERROR se non visibile.
+''';
 
-  dynamic _findValue(Map<String, dynamic> map, List<String> possibleKeys) {
-    for (final key in possibleKeys) {
-      if (map.containsKey(key)) return map[key];
-      // Cerca in modo insensibile al maiuscolo/minuscolo e ignorando gli underscore
-      final target = key.toLowerCase().replaceAll('_', '');
-      for (final actualKey in map.keys) {
-        final actual = actualKey.toLowerCase().replaceAll('_', '');
-        if (actual == target) {
-          return map[actualKey];
-        }
-      }
-    }
-    return null;
-  }
-
-  List<MealItem> _parseJsonToMealItems(String jsonString) {
-    String cleanJson = jsonString.trim();
+    final model = GenerativeModel(
+      model: modelName,
+      apiKey: apiKey,
+      systemInstruction: Content.system(systemPrompt),
+    );
 
     try {
-      // 1. Prova l'estrazione classica (primo [ o { fino all'ultimo ] o })
-      final block = _extractJsonBlock(cleanJson);
-      final decoded = json.decode(block);
-      return _convertDecodedToMealItems(decoded);
-    } catch (_) {
-      try {
-        // 2. Se fallisce (es. per blocchi doppi o ripetuti), prova ad estrarre l'ULTIMO blocco valido
-        final lastBlock = _extractLastJsonBlock(cleanJson);
-        final decoded = json.decode(lastBlock);
-        return _convertDecodedToMealItems(decoded);
-      } catch (e) {
-        print('Errore nel parsing del JSON di Gemini: $e');
-        throw Exception('Errore nel parsing dei dati del pasto: $e. Risposta originale: $jsonString');
-      }
+      final imagePart = DataPart('image/jpeg', Uint8List.fromList(imageBytes));
+      final response = await model.generateContent([
+        Content.multi([TextPart('Estrai il barcode.'), imagePart])
+      ]);
+
+      final text = response.text?.trim() ?? '';
+      if (text.isEmpty || text.contains('ERROR')) return null;
+      final digits = text.replaceAll(RegExp(r'\D'), '');
+      return digits.isNotEmpty ? digits : null;
+    } catch (e) {
+      print('Errore Gemini Barcode Extraction: $e');
+      return null;
     }
   }
 
-  String _extractJsonBlock(String text) {
+  List<MealItem> _parseJsonToMealItems(String jsonText) {
+    try {
+      final jsonBlock = _extractLastJsonBlock(jsonText);
+      final decoded = json.decode(jsonBlock);
+      return _convertDecodedToMealItems(decoded);
+    } catch (e) {
+      print('Fallito parsing JSON diretto: $e');
+      return [];
+    }
+  }
+
+  String _extractLastJsonBlock(String text) {
     final startBracket = text.indexOf('[');
     final startBrace = text.indexOf('{');
     int start = -1;
     int end = -1;
 
     if (startBracket != -1 && (startBrace == -1 || startBracket < startBrace)) {
-      start = startBracket;
-      end = text.lastIndexOf(']');
-    } else if (startBrace != -1) {
-      start = startBrace;
-      end = text.lastIndexOf('}');
-    }
-
-    if (start != -1 && end != -1 && end > start) {
-      return text.substring(start, end + 1);
-    }
-    return text;
-  }
-
-  String _extractLastJsonBlock(String text) {
-    final startBracket = text.lastIndexOf('[');
-    final startBrace = text.lastIndexOf('{');
-    int start = -1;
-    int end = -1;
-
-    if (startBracket != -1 && (startBrace == -1 || startBracket > startBrace)) {
       start = startBracket;
       end = text.lastIndexOf(']');
     } else if (startBrace != -1) {
@@ -333,7 +426,6 @@ Il formato JSON richiesto deve essere esattamente questo:
         list = [decoded];
       }
     } else {
-      print('Tipo JSON non supportato: ${decoded.runtimeType}');
       return [];
     }
 
@@ -355,13 +447,13 @@ Il formato JSON richiesto deve essere esattamente questo:
 
       final item = Map<String, dynamic>.from(itemRaw);
 
-      final String name = _findValue(item, ['name', 'nome', 'alimento', 'prodotto', 'ingredient', 'ingrediente']) ?? 'Sconosciuto';
-      final double amount = _parseDouble(_findValue(item, ['amountGrams', 'amount_grams', 'grams', 'grammi', 'weight', 'peso', 'amount', 'quantity', 'quantità']) ?? 100.0);
-      final double calories = _parseDouble(_findValue(item, ['caloriesPer100g', 'calories_per_100g', 'calories', 'calorie', 'kcal', 'energy', 'energia']) ?? 0.0);
-      final double proteins = _parseDouble(_findValue(item, ['proteinsPer100g', 'proteins_per_100g', 'proteins', 'proteine', 'protein']) ?? 0.0);
-      final double carbs = _parseDouble(_findValue(item, ['carbsPer100g', 'carbs_per_100g', 'carbs', 'carboidrati', 'carb', 'carbohydrates']) ?? 0.0);
-      final double fats = _parseDouble(_findValue(item, ['fatsPer100g', 'fats_per_100g', 'fats', 'grassi', 'fat', 'lipidi']) ?? 0.0);
-      final double fibers = _parseDouble(_findValue(item, ['fibersPer100g', 'fibers_per_100g', 'fibers', 'fibre', 'fiber']) ?? 0.0);
+      final String name = _findValue(item, ['name', 'nome', 'alimento', 'prodotto']) ?? 'Sconosciuto';
+      final double amount = _parseDouble(_findValue(item, ['amountGrams', 'grams', 'grammi', 'peso', 'quantity']) ?? 100.0);
+      final double calories = _parseDouble(_findValue(item, ['caloriesPer100g', 'calories', 'calorie', 'kcal']) ?? 0.0);
+      final double proteins = _parseDouble(_findValue(item, ['proteinsPer100g', 'proteins', 'proteine']) ?? 0.0);
+      final double carbs = _parseDouble(_findValue(item, ['carbsPer100g', 'carbs', 'carboidrati']) ?? 0.0);
+      final double fats = _parseDouble(_findValue(item, ['fatsPer100g', 'fats', 'grassi']) ?? 0.0);
+      final double fibers = _parseDouble(_findValue(item, ['fibersPer100g', 'fibers', 'fibre']) ?? 0.0);
 
       final food = Food(
         id: 'ai_${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
@@ -374,7 +466,7 @@ Il formato JSON richiesto deve essere esattamente questo:
         isCustom: true,
       );
 
-      final String? targetMeal = _findValue(item, ['targetMeal', 'target_meal', 'meal', 'pasto']);
+      final String? targetMeal = _findValue(item, ['targetMeal', 'meal', 'pasto']);
 
       return MealItem(
         food: food,
@@ -384,34 +476,16 @@ Il formato JSON richiesto deve essere esattamente questo:
     }).toList();
   }
 
-  Future<String?> extractBarcodeFromImage(List<int> imageBytes) async {
-    final systemPrompt = '''
-Sei un estrattore di codice a barre preciso ed efficiente.
-Analizza l'immagine fornita, trova il codice a barre principale (barcode EAN-13, EAN-8, UPC o simili) e restituisci ESCLUSIVAMENTE la sequenza numerica pulita del codice a barre rilevato, senza spazi, senza a capo, senza commenti e senza formattazione markdown (es. 8001120003008).
-Se non riesci a trovare o decifrare alcun codice a barre numerico nell'immagine, rispondi ESCLUSIVAMENTE con la parola: ERROR
-''';
-
-    final model = GenerativeModel(
-      model: modelName,
-      apiKey: apiKey,
-      systemInstruction: Content.system(systemPrompt),
-    );
-
-    try {
-      final imagePart = DataPart('image/jpeg', Uint8List.fromList(imageBytes));
-      final response = await model.generateContent([
-        Content.multi([TextPart('Estrai il codice a barre numerico da questa immagine.'), imagePart])
-      ]);
-
-      final text = response.text?.trim() ?? '';
-      if (text.isEmpty || text.contains('ERROR')) {
-        return null;
-      }
-      final digits = text.replaceAll(RegExp(r'\D'), '');
-      return digits.isNotEmpty ? digits : null;
-    } catch (e) {
-      print('Errore Gemini Barcode Extraction: $e');
-      return null;
+  dynamic _findValue(Map<String, dynamic> map, List<String> candidateKeys) {
+    for (final key in candidateKeys) {
+      if (map.containsKey(key)) return map[key];
     }
+    return null;
+  }
+
+  double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    return double.tryParse(val.toString()) ?? 0.0;
   }
 }

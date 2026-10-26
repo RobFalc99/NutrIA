@@ -41,6 +41,8 @@ class AppState extends ChangeNotifier {
   }
 
   List<Food> get customFoods => _customFoods;
+  List<Food> get customRecipes => _customFoods.where((f) => f.isRecipe).toList();
+  List<Food> get standaloneCustomFoods => _customFoods.where((f) => !f.isRecipe).toList();
   List<Meal> get customMeals => _customMeals;
 
   Future<void> _init() async {
@@ -204,7 +206,7 @@ class AppState extends ChangeNotifier {
     final model = currentUser?.geminiModel;
     return GeminiService(
       apiKey: key,
-      modelName: (model == null || model.trim().isEmpty) ? 'gemini-2.0-flash-lite' : model.trim(),
+      modelName: (model == null || model.trim().isEmpty) ? 'gemini-2.5-flash' : model.trim(),
     );
   }
 
@@ -338,7 +340,96 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Rimuove un alimento da un pasto del diario giornaliero
+  // Aggiunge una lista di alimenti in un'unica transazione (Multi-Add rapido)
+  Future<void> addMultipleMealItems(String mealName, List<MealItem> items) async {
+    if (currentDayLog == null || items.isEmpty) return;
+
+    await isar.writeTxn(() async {
+      var mealList = List<MealEntity>.from(currentDayLog!.meals);
+      var mealIndex = mealList.indexWhere((m) => m.name == mealName);
+
+      final newEntities = items.map((it) {
+        return MealItemEntity()
+          ..foodId = it.food.id
+          ..foodName = it.food.name
+          ..caloriesPer100g = it.food.caloriesPer100g
+          ..proteinsPer100g = it.food.proteinsPer100g
+          ..carbsPer100g = it.food.carbsPer100g
+          ..fatsPer100g = it.food.fatsPer100g
+          ..fibersPer100g = it.food.fibersPer100g
+          ..amountGrams = it.amountGrams
+          ..isOnline = it.food.isOnline;
+      }).toList();
+
+      if (mealIndex == -1) {
+        final newMeal = MealEntity()
+          ..id = 'meal_${DateTime.now().millisecondsSinceEpoch}'
+          ..name = mealName
+          ..items = newEntities;
+        mealList.add(newMeal);
+      } else {
+        final updatedItems = List<MealItemEntity>.from(mealList[mealIndex].items)..addAll(newEntities);
+        mealList[mealIndex] = MealEntity()
+          ..id = mealList[mealIndex].id
+          ..name = mealList[mealIndex].name
+          ..isCustomOnline = mealList[mealIndex].isCustomOnline
+          ..items = updatedItems;
+      }
+
+      currentDayLog!.meals = mealList;
+      await isar.dailyLogEntitys.put(currentDayLog!);
+    });
+
+    final index = _weeklyLogs.indexWhere((e) => _isSameDay(e.date, currentDayLog!.date));
+    if (index != -1) {
+      _weeklyLogs[index] = currentDayLog!;
+    } else {
+      _weeklyLogs.add(currentDayLog!);
+    }
+
+    notifyListeners();
+  }
+
+  // Restituisce gli alimenti consumati di recente per uno specifico pasto (es. "Colazione")
+  Future<List<Food>> getRecentFoodsForMeal(String mealName, {int limit = 8}) async {
+    try {
+      final logs = await isar.dailyLogEntitys.where().sortByDateDesc().findAll();
+      final Map<String, Food> uniqueFoods = {};
+
+      for (final log in logs) {
+        for (final meal in log.meals) {
+          if (meal.name != null && meal.name!.toLowerCase() == mealName.toLowerCase()) {
+            for (final item in meal.items) {
+              if (item.foodId != null && item.foodName != null && !uniqueFoods.containsKey(item.foodId)) {
+                // Se corrisponde a un cibo custom o ricetta salvata, preserva la porzione personalizzata
+                final matchedCustom = _customFoods.firstWhere(
+                  (cf) => cf.id == item.foodId || cf.name.toLowerCase() == item.foodName!.toLowerCase(),
+                  orElse: () => Food(
+                    id: item.foodId!,
+                    name: item.foodName!,
+                    caloriesPer100g: item.caloriesPer100g,
+                    proteinsPer100g: item.proteinsPer100g,
+                    carbsPer100g: item.carbsPer100g,
+                    fatsPer100g: item.fatsPer100g,
+                    fibersPer100g: item.fibersPer100g,
+                    isOnline: item.isOnline,
+                    customServingGrams: item.amountGrams > 0 ? item.amountGrams : null,
+                  ),
+                );
+
+                uniqueFoods[item.foodId!] = matchedCustom;
+                if (uniqueFoods.length >= limit) return uniqueFoods.values.toList();
+              }
+            }
+          }
+        }
+      }
+      return uniqueFoods.values.toList();
+    } catch (e) {
+      print('Errore caricamento alimenti recenti per pasto: $e');
+      return [];
+    }
+  }
   Future<void> removeMealItem(String mealName, int itemIndex) async {
     if (currentDayLog == null) return;
 

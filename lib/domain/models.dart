@@ -10,6 +10,12 @@ class Food {
   final bool isCustom; // True se è un alimento personale creato dall'utente
   final bool isOnline; // True se salvato sul DB online, False se locale/OpenFoodFacts
   final double? estimatedAmountGrams; // Aggiunto per stima quantità dall'IA
+  final double? customServingGrams; // Porzione personalizzata abituale (es. 40g, 50g)
+  final String? customServingName; // Nome opzionale della porzione (es. "Porzione", "Pancake", "Fetta")
+  final bool isRecipe; // True se creato tramite Recipe Builder
+  final String? recipeIngredientsJson; // Dettagli completi ingredienti in JSON per ri-modifica
+  final double? recipeTotalWeightGrams; // Peso totale cotto / finale
+  final double? recipeServingsCount; // Numero porzioni
 
   Food({
     required this.id,
@@ -23,7 +29,101 @@ class Food {
     this.isCustom = false,
     this.isOnline = false,
     this.estimatedAmountGrams,
+    this.customServingGrams,
+    this.customServingName,
+    this.isRecipe = false,
+    this.recipeIngredientsJson,
+    this.recipeTotalWeightGrams,
+    this.recipeServingsCount,
   });
+
+  Food copyWith({
+    String? id,
+    String? name,
+    String? brand,
+    double? caloriesPer100g,
+    double? proteinsPer100g,
+    double? carbsPer100g,
+    double? fatsPer100g,
+    double? fibersPer100g,
+    bool? isCustom,
+    bool? isOnline,
+    double? estimatedAmountGrams,
+    double? customServingGrams,
+    String? customServingName,
+    bool? isRecipe,
+    String? recipeIngredientsJson,
+    double? recipeTotalWeightGrams,
+    double? recipeServingsCount,
+  }) {
+    return Food(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      brand: brand ?? this.brand,
+      caloriesPer100g: caloriesPer100g ?? this.caloriesPer100g,
+      proteinsPer100g: proteinsPer100g ?? this.proteinsPer100g,
+      carbsPer100g: carbsPer100g ?? this.carbsPer100g,
+      fatsPer100g: fatsPer100g ?? this.fatsPer100g,
+      fibersPer100g: fibersPer100g ?? this.fibersPer100g,
+      isCustom: isCustom ?? this.isCustom,
+      isOnline: isOnline ?? this.isOnline,
+      estimatedAmountGrams: estimatedAmountGrams ?? this.estimatedAmountGrams,
+      customServingGrams: customServingGrams ?? this.customServingGrams,
+      customServingName: customServingName ?? this.customServingName,
+      isRecipe: isRecipe ?? this.isRecipe,
+      recipeIngredientsJson: recipeIngredientsJson ?? this.recipeIngredientsJson,
+      recipeTotalWeightGrams: recipeTotalWeightGrams ?? this.recipeTotalWeightGrams,
+      recipeServingsCount: recipeServingsCount ?? this.recipeServingsCount,
+    );
+  }
+}
+
+class RecipeIngredient {
+  final Food food;
+  final double amountGrams;
+
+  RecipeIngredient({required this.food, required this.amountGrams});
+
+  double get calories => (food.caloriesPer100g * amountGrams) / 100;
+  double get proteins => (food.proteinsPer100g * amountGrams) / 100;
+  double get carbs => (food.carbsPer100g * amountGrams) / 100;
+  double get fats => (food.fatsPer100g * amountGrams) / 100;
+  double get fibers => (food.fibersPer100g * amountGrams) / 100;
+
+  Map<String, dynamic> toJson() => {
+    'amountGrams': amountGrams,
+    'food': {
+      'id': food.id,
+      'name': food.name,
+      'brand': food.brand,
+      'caloriesPer100g': food.caloriesPer100g,
+      'proteinsPer100g': food.proteinsPer100g,
+      'carbsPer100g': food.carbsPer100g,
+      'fatsPer100g': food.fatsPer100g,
+      'fibersPer100g': food.fibersPer100g,
+      'customServingGrams': food.customServingGrams,
+      'customServingName': food.customServingName,
+    }
+  };
+
+  factory RecipeIngredient.fromJson(Map<String, dynamic> json) {
+    final foodMap = json['food'] as Map<String, dynamic>;
+    return RecipeIngredient(
+      amountGrams: (json['amountGrams'] as num).toDouble(),
+      food: Food(
+        id: foodMap['id'] as String? ?? 'ing_${DateTime.now().microsecondsSinceEpoch}',
+        name: foodMap['name'] as String? ?? '',
+        brand: foodMap['brand'] as String?,
+        caloriesPer100g: (foodMap['caloriesPer100g'] as num?)?.toDouble() ?? 0.0,
+        proteinsPer100g: (foodMap['proteinsPer100g'] as num?)?.toDouble() ?? 0.0,
+        carbsPer100g: (foodMap['carbsPer100g'] as num?)?.toDouble() ?? 0.0,
+        fatsPer100g: (foodMap['fatsPer100g'] as num?)?.toDouble() ?? 0.0,
+        fibersPer100g: (foodMap['fibersPer100g'] as num?)?.toDouble() ?? 0.0,
+        customServingGrams: (foodMap['customServingGrams'] as num?)?.toDouble(),
+        customServingName: foodMap['customServingName'] as String?,
+      ),
+    );
+  }
 }
 
 class MealItem {

@@ -320,8 +320,8 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
 
   // --- POPUP DI SELEZIONE GRAMMATURA ---
   void _showAddQuantityDialog(Food food) {
-    double amount = 100.0;
-    final textController = TextEditingController(text: '100');
+    double amount = food.customServingGrams ?? 100.0;
+    final textController = TextEditingController(text: (food.customServingGrams?.toInt() ?? 100).toString());
 
     showDialog(
       context: context,
@@ -382,17 +382,32 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
                     // Quick gram chips
                     Wrap(
                       spacing: 8,
-                      children: [5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) {
-                        return ActionChip(
-                          label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                          backgroundColor: Colors.white.withOpacity(0.06),
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            textController.text = g.toString();
-                            setDialogState(() { amount = g.toDouble(); });
-                          },
-                        );
-                      }).toList(),
+                      runSpacing: 6,
+                      children: [
+                        if (food.customServingGrams != null)
+                          ActionChip(
+                            avatar: const Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
+                            label: Text('${food.customServingName ?? "Porzione"} (${food.customServingGrams!.toInt()}g)', style: const TextStyle(color: accentCyan, fontWeight: FontWeight.bold, fontSize: 11)),
+                            backgroundColor: accentCyan.withOpacity(0.12),
+                            side: const BorderSide(color: accentCyan),
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              textController.text = food.customServingGrams!.toInt().toString();
+                              setDialogState(() { amount = food.customServingGrams!; });
+                            },
+                          ),
+                        ...[5, 10, 25, 30, 50, 100, 150, 200, 250].map((g) {
+                          return ActionChip(
+                            label: Text('${g}g', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                            backgroundColor: Colors.white.withOpacity(0.06),
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              textController.text = g.toString();
+                              setDialogState(() { amount = g.toDouble(); });
+                            },
+                          );
+                        }).toList(),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     const Text('Valori calcolati:', style: TextStyle(color: Colors.white54, fontSize: 12)),

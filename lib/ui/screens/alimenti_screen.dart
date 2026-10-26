@@ -10,6 +10,7 @@ import '../../providers/translations.dart';
 import '../../domain/models.dart';
 import '../../data/remote/open_food_facts_service.dart';
 import 'add_meal_screen.dart'; // Per riutilizzare BarcodeScannerScreen
+import 'recipe_builder_screen.dart';
 
 class AlimentiScreen extends StatefulWidget {
   final String? initialMealTarget;
@@ -469,7 +470,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
 
   // --- DIALOG DI INSERIMENTO QUANTITÀ & DIARIO ---
   void _showAddQuantityDialog(Food food, {bool showSaveFavorite = true}) {
-    double amount = food.estimatedAmountGrams ?? 100.0;
+    double amount = food.customServingGrams ?? (food.estimatedAmountGrams ?? 100.0);
     final initialText = amount == amount.toInt() ? amount.toInt().toString() : amount.toStringAsFixed(1);
     final textController = TextEditingController(text: initialText);
     final nameController = TextEditingController(text: food.name);
@@ -485,6 +486,10 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
             double carbs = (food.carbsPer100g * amount) / 100;
             double fats = (food.fatsPer100g * amount) / 100;
             double fibers = (food.fibersPer100g * amount) / 100;
+
+            final hasCustomPortion = food.customServingGrams != null && food.customServingGrams! > 0;
+            final customGrams = food.customServingGrams ?? 100.0;
+            final portionName = food.customServingName ?? 'Porzione';
 
             return AlertDialog(
               backgroundColor: bgCard,
@@ -523,6 +528,45 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                       ),
                     ),
                     const SizedBox(height: 16),
+                    if (hasCustomPortion) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: accentCyan.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: accentCyan.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
+                                const SizedBox(width: 4),
+                                Text('Porzione Abituale: $portionName (${customGrams.toInt()}g)', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              children: [0.5, 1.0, 1.5, 2.0].map((m) {
+                                final g = (customGrams * m).toInt();
+                                return ActionChip(
+                                  label: Text('${m}x (${g}g)', style: const TextStyle(color: accentCyan, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  backgroundColor: accentCyan.withValues(alpha: 0.12),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    textController.text = g.toString();
+                                    setDialogState(() => amount = g.toDouble());
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     TextField(
                       controller: textController,
                       keyboardType: TextInputType.number,
@@ -1358,6 +1402,14 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   }
 
   void _showEditFoodDialog(Food food) {
+    if (food.isRecipe) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => RecipeBuilderScreen(initialRecipe: food)),
+      );
+      return;
+    }
+
     final nomeController = TextEditingController(text: food.name);
     final marcaController = TextEditingController(text: food.brand ?? '');
     final kcalController = TextEditingController(text: food.caloriesPer100g.toStringAsFixed(1));
@@ -1365,6 +1417,8 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
     final carbController = TextEditingController(text: food.carbsPer100g.toStringAsFixed(1));
     final fatController = TextEditingController(text: food.fatsPer100g.toStringAsFixed(1));
     final fibController = TextEditingController(text: food.fibersPer100g.toStringAsFixed(1));
+    final porzioneGramsController = TextEditingController(text: food.customServingGrams != null ? food.customServingGrams!.toInt().toString() : '');
+    final porzioneNomeController = TextEditingController(text: food.customServingName ?? '');
 
     showDialog(
       context: context,
@@ -1496,6 +1550,43 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Porzione Abituale (g)', style: TextStyle(color: Color(0xFFFFD700), fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: porzioneGramsController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('es. 40, 50'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Nome Porzione', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: porzioneNomeController,
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _buildManualInputDecoration('es. Biscotto, Fetta'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1531,7 +1622,10 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                   carbsPer100g: carb,
                   fatsPer100g: fat,
                   fibersPer100g: fib,
+                  customServingGrams: double.tryParse(porzioneGramsController.text),
+                  customServingName: porzioneNomeController.text.trim().isNotEmpty ? porzioneNomeController.text.trim() : null,
                   isCustom: true,
+                  isOnline: food.isOnline,
                 );
 
                 appState.saveCustomFood(customFood);
@@ -2160,6 +2254,29 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RecipeBuilderScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentPink,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.soup_kitchen, size: 18),
+                  label: const Text('Crea Ricetta con IA 🍲', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           const Text('Alimenti Salvati:', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
 
@@ -2222,7 +2339,46 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          title: Text(food.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: food.isRecipe ? accentPink.withOpacity(0.12) : accentCyan.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              food.isRecipe ? Icons.soup_kitchen : Icons.bookmark,
+                              color: food.isRecipe ? accentPink : accentCyan,
+                              size: 18,
+                            ),
+                          ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(food.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              ),
+                              if (food.isRecipe)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  margin: const EdgeInsets.only(left: 4),
+                                  decoration: BoxDecoration(
+                                    color: accentPink.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text('RICETTA', style: TextStyle(color: accentPink, fontSize: 9, fontWeight: FontWeight.bold)),
+                                ),
+                              if (food.customServingGrams != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  margin: const EdgeInsets.only(left: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFD700).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('${food.customServingGrams!.toInt()}g', style: const TextStyle(color: Color(0xFFFFD700), fontSize: 9, fontWeight: FontWeight.bold)),
+                                ),
+                            ],
+                          ),
                           subtitle: Text(
                             '${food.brand ?? "Generico"} · ${food.caloriesPer100g.toInt()} kcal/100g',
                             style: const TextStyle(color: Colors.white54, fontSize: 11),
