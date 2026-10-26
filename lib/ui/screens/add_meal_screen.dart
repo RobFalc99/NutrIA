@@ -1351,13 +1351,13 @@ class _AddMealScreenState extends State<AddMealScreen> with SingleTickerProvider
       final result = await service.analyzeMacroImage(bytes);
       if (result != null) {
         setState(() {
-          _customNameController.text = result['name'] ?? '';
-          _customBrandController.text = result['brand'] ?? '';
-          _customCalController.text = result['caloriesPer100g']?.toString() ?? '';
-          _customProtController.text = result['proteinsPer100g']?.toString() ?? '';
-          _customCarbController.text = result['carbsPer100g']?.toString() ?? '';
-          _customFatController.text = result['fatsPer100g']?.toString() ?? '';
-          _customFibController.text = result['fibersPer100g']?.toString() ?? '';
+          _customNameController.text = result.name;
+          _customBrandController.text = result.brand ?? '';
+          _customCalController.text = result.caloriesPer100g.toStringAsFixed(0);
+          _customProtController.text = result.proteinsPer100g.toStringAsFixed(1);
+          _customCarbController.text = result.carbsPer100g.toStringAsFixed(1);
+          _customFatController.text = result.fatsPer100g.toStringAsFixed(1);
+          _customFibController.text = result.fibersPer100g.toStringAsFixed(1);
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Valori estratti con successo! Verifica i campi.'), behavior: SnackBarBehavior.floating),

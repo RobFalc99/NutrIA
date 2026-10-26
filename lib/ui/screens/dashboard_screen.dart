@@ -1398,8 +1398,9 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
                   ),
                   const SizedBox(height: 12),
                   Builder(builder: (ctx) {
+                    final appState = context.read<AppState>();
                     final matchingCustom = appState.customFoods.cast<Food?>().firstWhere(
-                      (f) => f?.id == item.foodId || f?.name.toLowerCase() == item.foodName?.toLowerCase(),
+                      (f) => f?.id == item.food.id || f?.name.toLowerCase() == item.food.name.toLowerCase(),
                       orElse: () => null,
                     );
                     final customPortion = matchingCustom?.customServingGrams?.toInt();

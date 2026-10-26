@@ -434,27 +434,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
       Navigator.pop(context);
 
       if (result != null) {
-        final String name = result['name'] ?? 'Etichetta Scansionata';
-        final String? brand = result['brand'];
-        final double calories = (result['caloriesPer100g'] as num?)?.toDouble() ?? 0.0;
-        final double proteins = (result['proteinsPer100g'] as num?)?.toDouble() ?? 0.0;
-        final double carbs = (result['carbsPer100g'] as num?)?.toDouble() ?? 0.0;
-        final double fats = (result['fatsPer100g'] as num?)?.toDouble() ?? 0.0;
-        final double fibers = (result['fibersPer100g'] as num?)?.toDouble() ?? 0.0;
-
-        final food = Food(
-          id: 'scanned_macro_${DateTime.now().millisecondsSinceEpoch}',
-          name: name,
-          brand: brand,
-          caloriesPer100g: calories,
-          proteinsPer100g: proteins,
-          carbsPer100g: carbs,
-          fatsPer100g: fats,
-          fibersPer100g: fibers,
-          isCustom: true,
-        );
-
-        _showAddQuantityDialog(food);
+        _showAddQuantityDialog(result);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Impossibile estrarre i valori. Riprova con un\'immagine più nitida.')),

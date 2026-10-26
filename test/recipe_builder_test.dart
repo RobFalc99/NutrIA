@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kcal_v1/domain/models.dart';
 import 'package:kcal_v1/data/remote/gemini_service.dart';
