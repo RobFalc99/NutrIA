@@ -13,6 +13,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/translations.dart';
 import 'add_meal_screen.dart'; // Per BarcodeScannerScreen
 import 'recipe_builder_screen.dart';
+import '../widgets/nutria_thinking_view.dart';
 
 /// Hub 'Nuovo Alimento / Ricetta' a schermo intero senza scroll verticale.
 /// Presenta 5 opzioni visibili istantaneamente con layout ottimizzato e compatto.
@@ -59,29 +60,7 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
   }
 
   void _showLoadingDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: bgCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Row(
-            children: [
-              const CircularProgressIndicator(color: accentCyan),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    NutriaThinkingDialog.show(context, message: message);
   }
 
   // --- 1. Scansione Tabella Nutrizionale ---
@@ -636,7 +615,7 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
                   onTap: _scanMacroLabelWithAi,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 13),
 
               // 2. Barcode Card
               Expanded(
@@ -648,7 +627,7 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
                   onTap: _startBarcodeScan,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 13),
 
               // 3. Stima con IA Card
               Expanded(
@@ -660,7 +639,7 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
                   onTap: _showSingleFoodAiPopup,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 13),
 
               // 4. Creazione Ricetta con IA Card (Richiesta specifica tra IA e manuale)
               Expanded(
@@ -672,7 +651,7 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
                   onTap: _openRecipeBuilder,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 13),
 
               // 5. Inserimento Manuale Card
               Expanded(
@@ -707,7 +686,7 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
           decoration: BoxDecoration(
             color: context.bgCard,
             borderRadius: BorderRadius.circular(16),
@@ -742,18 +721,18 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
                       style: TextStyle(
                         color: color,
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 15.5,
                         letterSpacing: 0.2,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 11,
+                        fontSize: 12.5,
                         height: 1.25,
                       ),
                       maxLines: 2,

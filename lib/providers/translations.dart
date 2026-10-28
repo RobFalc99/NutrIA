@@ -390,6 +390,10 @@ class AppTranslations {
     'Aggiungi al Diario': {'en': 'Add to Diary', 'it': 'Aggiungi al Diario'},
     'Modifica Ricetta': {'en': 'Edit Recipe', 'it': 'Modifica Ricetta'},
     'Nuova Ricetta': {'en': 'New Recipe', 'it': 'Nuova Ricetta'},
+    'La Nutria sta pensando...': {
+      'en': 'The Nutria is thinking...',
+      'it': 'La Nutria sta pensando...'
+    },
   };
 
   static String translate(String key, String lang) {

@@ -12,6 +12,7 @@ import '../../data/local/entities/daily_log_entity.dart';
 import '../../data/local/entities/user_profile_entity.dart';
 import '../../domain/models.dart';
 import 'quick_food_logger_sheet.dart';
+import '../widgets/nutria_thinking_view.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -1861,30 +1862,74 @@ class _WholeMealAiDialogState extends State<WholeMealAiDialog> {
 
               if (_isLoading) ...[
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.02),
+                    color: Colors.white.withValues(alpha: 0.03),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.04)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                   ),
                   child: Column(
                     children: [
-                      Image.asset(
-                        'assets/thinking_clear.png',
-                        height: 130,
-                        fit: BoxFit.contain,
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: accentCyan.withValues(alpha: 0.15),
+                              blurRadius: 30,
+                              spreadRadius: 6,
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/thinking_clear.png',
+                          height: 180,
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.auto_awesome, color: accentCyan, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.tr('La Nutria sta pensando...'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: accentCyan),
+                        width: 140,
+                        child: LinearProgressIndicator(
+                          minHeight: 3,
+                          backgroundColor: Colors.white12,
+                          valueColor: AlwaysStoppedAnimation<Color>(accentCyan),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        context.tr('Sto calcolando le calorie e i macronutrienti del pasto con l\'IA...'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                        ),
+                        child: Text(
+                          '“${NutriaThinkingQuotes.getRandom()}”',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                            height: 1.35,
+                          ),
+                        ),
                       ),
                     ],
                   ),

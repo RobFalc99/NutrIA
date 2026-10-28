@@ -8,6 +8,7 @@ import '../../domain/models.dart';
 import '../../providers/app_state.dart';
 import '../../providers/translations.dart';
 import '../../data/remote/open_food_facts_service.dart';
+import '../widgets/nutria_thinking_view.dart';
 
 class RecipeBuilderScreen extends StatefulWidget {
   final Food? initialRecipe; // Se fornito, modalità modifica ricetta esistente
@@ -245,8 +246,13 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
         _ingredients.clear();
         _ingredients.addAll(parsed.ingredients);
 
-        if (parsed.totalCookedWeightGrams != null) {
-          _totalWeightController.text = parsed.totalCookedWeightGrams!.toInt().toString();
+        final totalWeight = parsed.totalCookedWeightGrams ??
+            (parsed.servingWeightGrams != null && parsed.servingsCount != null
+                ? parsed.servingWeightGrams! * parsed.servingsCount!
+                : (_rawIngredientsWeight > 0 ? _rawIngredientsWeight : null));
+
+        if (totalWeight != null && totalWeight > 0) {
+          _totalWeightController.text = totalWeight.toInt().toString();
         } else {
           _totalWeightController.clear();
         }
@@ -413,6 +419,17 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingAi) {
+      return NutriaThinkingView(
+        message: 'La Nutria sta analizzando la ricetta...',
+        onCancel: () {
+          setState(() {
+            _isLoadingAi = false;
+          });
+        },
+      );
+    }
+
     return Scaffold(
       backgroundColor: bgDark,
       appBar: AppBar(
@@ -721,24 +738,24 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
           Row(
             children: [
               _buildTriangleBox(
-                title: context.tr('Peso Totale Cotto'),
-                subtitle: '(Cotto / finito)',
+                title: 'Peso Tot',
+                subtitle: '(Cotto g)',
                 suffix: 'g',
                 controller: _totalWeightController,
                 onChanged: _onTotalWeightChanged,
               ),
               const SizedBox(width: 8),
               _buildTriangleBox(
-                title: context.tr('N. Porzioni'),
-                subtitle: '(Pezzi totali)',
+                title: 'Porzioni',
+                subtitle: '(N. pz)',
                 suffix: 'pz',
                 controller: _servingsController,
                 onChanged: _onServingsChanged,
               ),
               const SizedBox(width: 8),
               _buildTriangleBox(
-                title: context.tr('Peso Porzione'),
-                subtitle: '(Grammatura)',
+                title: 'Peso Porz.',
+                subtitle: '(Grammi)',
                 suffix: 'g',
                 controller: _portionWeightController,
                 onChanged: _onPortionWeightChanged,
