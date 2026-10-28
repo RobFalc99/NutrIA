@@ -588,13 +588,7 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  final mealItem = MealItem(
-                    id: UniqueKey().toString(),
-                    food: food,
-                    amountGrams: amount,
-                    targetMeal: selectedMeal,
-                  );
-                  context.read<AppState>().addMealItem(mealItem);
+                  context.read<AppState>().addMealItem(selectedMeal, food, amount);
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Aggiunto a $selectedMeal!'), backgroundColor: accentCyan),

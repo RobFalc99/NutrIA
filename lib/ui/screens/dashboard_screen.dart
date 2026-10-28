@@ -9,6 +9,7 @@ import '../../providers/app_state.dart';
 import '../../providers/translations.dart';
 import '../../providers/theme_provider.dart';
 import '../../data/local/entities/daily_log_entity.dart';
+import '../../data/local/entities/user_profile_entity.dart';
 import '../../domain/models.dart';
 import 'quick_food_logger_sheet.dart';
 
@@ -893,7 +894,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildWeeklyAveragesCard(BuildContext context, WeeklyStats stats, UserProfile user) {
+  Widget _buildWeeklyAveragesCard(BuildContext context, WeeklyStats stats, UserProfileEntity? user) {
     const accentCyan = Color(0xFF00FFC2);
     const accentPink = Color(0xFFFF007F);
     const accentYellow = Color(0xFFFFD700);
@@ -905,6 +906,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final avgFat = stats.averageFats;
     final avgFib = stats.averageFibers;
     final activeDaysCount = stats.activeDays.length;
+    final goalCal = user?.goalCalories ?? 2000.0;
 
     return Container(
       margin: const EdgeInsets.only(top: 24),
@@ -954,16 +956,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
               ),
               Text(
-                'al giorno (Target: ${user.goalCalories.toInt()} kcal)',
+                'al giorno (Target: ${goalCal.toInt()} kcal)',
                 style: const TextStyle(color: Colors.white54, fontSize: 12),
               ),
             ],
           ),
           const SizedBox(height: 8),
           LinearProgressIndicator(
-            value: user.goalCalories > 0 ? (avgCal / user.goalCalories).clamp(0.0, 1.0) : 0.0,
+            value: goalCal > 0 ? (avgCal / goalCal).clamp(0.0, 1.0) : 0.0,
             backgroundColor: Colors.white12,
-            color: avgCal <= user.goalCalories ? accentCyan : accentPink,
+            color: avgCal <= goalCal ? accentCyan : accentPink,
             minHeight: 6,
             borderRadius: BorderRadius.circular(3),
           ),
