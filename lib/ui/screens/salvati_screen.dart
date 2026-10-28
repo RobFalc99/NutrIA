@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/models.dart';
 import '../../providers/app_state.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/translations.dart';
 import 'recipe_builder_screen.dart';
 
 class SalvatiScreen extends StatefulWidget {
@@ -41,9 +42,9 @@ class _SalvatiScreenState extends State<SalvatiScreen> {
     return Scaffold(
       backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        title: const Text(
-          'Salvati',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+        title: Text(
+          context.tr('Salvati'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -70,9 +71,9 @@ class _SalvatiScreenState extends State<SalvatiScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 icon: const Icon(Icons.soup_kitchen_rounded, size: 20),
-                label: const Text(
-                  'Crea Ricetta con IA 🍲',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                label: Text(
+                  '${context.tr('Crea con Recipe Builder')} 🍲',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
               const SizedBox(height: 12),
@@ -83,7 +84,7 @@ class _SalvatiScreenState extends State<SalvatiScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 13),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Cerca tra alimenti e ricette salvate...',
+                  hintText: context.tr('Cerca nei salvati...'),
                   hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
                   prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
                   filled: true,
@@ -106,11 +107,11 @@ class _SalvatiScreenState extends State<SalvatiScreen> {
               // Filter Chips
               Row(
                 children: [
-                  _buildFilterChip('Tutti (${customFoods.length})', 0),
+                  _buildFilterChip('${context.tr('Tutti')} (${customFoods.length})', 0),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Ricette (${customFoods.where((f) => f.isRecipe).length})', 1),
+                  _buildFilterChip('${context.tr('Ricette')} (${customFoods.where((f) => f.isRecipe).length})', 1),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Cibi Singoli (${customFoods.where((f) => !f.isRecipe).length})', 2),
+                  _buildFilterChip('${context.tr('Cibi Singoli')} (${customFoods.where((f) => !f.isRecipe).length})', 2),
                 ],
               ),
               const SizedBox(height: 12),
@@ -126,7 +127,7 @@ class _SalvatiScreenState extends State<SalvatiScreen> {
                             const SizedBox(height: 10),
                             Text(
                               customFoods.isEmpty
-                                  ? 'Nessun alimento o ricetta personale salvata.\nAggiungili dalla sezione "Nuovo" per trovarli qui.'
+                                  ? context.tr('Crea ricette con l\'IA o salva alimenti personalizzati per ritrovarli qui.')
                                   : 'Nessun risultato trovato per la ricerca.',
                               style: const TextStyle(color: Colors.white38, fontSize: 12),
                               textAlign: TextAlign.center,

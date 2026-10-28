@@ -314,6 +314,82 @@ class AppTranslations {
       'en': 'The AI did not identify the single food item. Try being more specific.',
       'it': 'L\'IA non ha identificato l\'alimento singolo. Prova ad essere più specifico.'
     },
+
+    // New additions for full localization
+    'Nuovo': {'en': 'New', 'it': 'Nuovo'},
+    'Salvati': {'en': 'Saved', 'it': 'Salvati'},
+    'Cibi e Ricette Salvate': {'en': 'Saved Foods & Recipes', 'it': 'Cibi e Ricette Salvate'},
+    'Cerca nei salvati...': {'en': 'Search in saved...', 'it': 'Cerca nei salvati...'},
+    'Tutti': {'en': 'All', 'it': 'Tutti'},
+    'Ricette': {'en': 'Recipes', 'it': 'Ricette'},
+    'Cibi Singoli': {'en': 'Single Foods', 'it': 'Cibi Singoli'},
+    'Nessun alimento o ricetta salvata': {'en': 'No saved foods or recipes yet', 'it': 'Nessun alimento o ricetta salvata'},
+    'Crea ricette con l\'IA o salva alimenti personalizzati per ritrovarli qui.': {
+      'en': 'Create recipes with AI or save custom foods to find them here.',
+      'it': 'Crea ricette con l\'IA o salva alimenti personalizzati per ritrovarli qui.'
+    },
+    'Crea con Recipe Builder': {'en': 'Create with Recipe Builder', 'it': 'Crea con Recipe Builder'},
+    'Nuovo Alimento': {'en': 'New Food', 'it': 'Nuovo Alimento'},
+    'Scegli la modalità di inserimento rapido': {'en': 'Choose fast logging method', 'it': 'Scegli la modalità di inserimento rapido'},
+    'Tabella nutrizionale': {'en': 'Nutrition table', 'it': 'Tabella nutrizionale'},
+    'Scansiona etichetta con OCR / IA': {'en': 'Scan label with OCR / AI', 'it': 'Scansiona etichetta con OCR / IA'},
+    'Codice a barre': {'en': 'Barcode', 'it': 'Codice a barre'},
+    'Scansiona barcode via OpenFoodFacts': {'en': 'Scan barcode via OpenFoodFacts', 'it': 'Scansiona barcode via OpenFoodFacts'},
+    'Stima con IA': {'en': 'Estimate with AI', 'it': 'Stima con IA'},
+    'Stima valori e grammi da foto o testo': {'en': 'Estimate values & grams from photo or text', 'it': 'Stima valori e grammi da foto o testo'},
+    'Creazione di ricetta con IA': {'en': 'Recipe creation with AI', 'it': 'Creazione di ricetta con IA'},
+    'Scomponi ingredienti e calcola porzioni': {'en': 'Break down ingredients & calculate portions', 'it': 'Scomponi ingredienti e calcola porzioni'},
+    'Inserimento manuale': {'en': 'Manual entry', 'it': 'Inserimento manuale'},
+    'Inserisci valori e porzione a mano': {'en': 'Enter values & portion manually', 'it': 'Inserisci valori e porzione a mano'},
+    'Media Settimanale': {'en': 'Weekly Average', 'it': 'Media Settimanale'},
+    'al giorno': {'en': 'per day', 'it': 'al giorno'},
+    'Carbo': {'en': 'Carbs', 'it': 'Carbo'},
+    'Ottieni o visualizza le tue API Key su Google AI Studio': {
+      'en': 'Get or view your API Keys on Google AI Studio',
+      'it': 'Ottieni o visualizza le tue API Key su Google AI Studio'
+    },
+    'Triangolo delle Porzioni': {'en': 'Portion Triangle', 'it': 'Triangolo delle Porzioni'},
+    'Peso Totale Cotto': {'en': 'Total Cooked Weight', 'it': 'Peso Totale Cotto'},
+    'N. Porzioni': {'en': 'Servings Count', 'it': 'N. Porzioni'},
+    'Peso Porzione': {'en': 'Portion Weight', 'it': 'Peso Porzione'},
+    'Nome Porzione': {'en': 'Portion Name', 'it': 'Nome Porzione'},
+    'Dettatura vocale 🎙️': {'en': 'Voice dictation 🎙️', 'it': 'Dettatura vocale 🎙️'},
+    'Genera Ricetta con IA': {'en': 'Generate Recipe with AI', 'it': 'Genera Ricetta con IA'},
+    'Salva Ricetta': {'en': 'Save Recipe', 'it': 'Salva Ricetta'},
+    'Ingredienti': {'en': 'Ingredients', 'it': 'Ingredienti'},
+    'Aggiungi Ingrediente': {'en': 'Add Ingredient', 'it': 'Aggiungi Ingrediente'},
+    'Cerca o scrivi gli ingredienti della tua ricetta...': {
+      'en': 'Search or write your recipe ingredients...',
+      'it': 'Cerca o scrivi gli ingredienti della tua ricetta...'
+    },
+    'Tracciamento di Dettaglio': {'en': 'Detailed Tracking', 'it': 'Tracciamento di Dettaglio'},
+    'Traccia Fibre Alimentari': {'en': 'Track Dietary Fibers', 'it': 'Traccia Fibre Alimentari'},
+    'Visualizza e conteggia le fibre in tutti i pasti': {
+      'en': 'View and count fibers across all meals',
+      'it': 'Visualizza e conteggia le fibre in tutti i pasti'
+    },
+    'Grassi saturi e insaturi': {'en': 'Saturated & Unsaturated Fats', 'it': 'Grassi saturi e insaturi'},
+    'Zuccheri semplici': {'en': 'Simple Sugars', 'it': 'Zuccheri semplici'},
+    'Micronutrienti e integrazione': {'en': 'Micronutrients & Supplements', 'it': 'Micronutrienti e integrazione'},
+    'Modello IA Selezionato': {'en': 'Selected AI Model', 'it': 'Modello IA Selezionato'},
+    'Aggiorna elenco modelli dalle API online': {
+      'en': 'Refresh models list from online APIs',
+      'it': 'Aggiorna elenco modelli dalle API online'
+    },
+    'Feedback & Supporto': {'en': 'Feedback & Support', 'it': 'Feedback & Supporto'},
+    'Contatta il supporto, lascia feedback o scopri di più': {
+      'en': 'Contact support, leave feedback or discover more',
+      'it': 'Contatta il supporto, lascia feedback o scopri di più'
+    },
+    'Invia una mail allo sviluppatore': {'en': 'Send an email to developer', 'it': 'Invia una mail allo sviluppatore'},
+    'Tocca per aprire la tua app email': {'en': 'Tap to open your email client', 'it': 'Tocca per aprire la tua app email'},
+    'Porzione': {'en': 'Serving', 'it': 'Porzione'},
+    'Per porzione': {'en': 'Per serving', 'it': 'Per porzione'},
+    'Per 100g': {'en': 'Per 100g', 'it': 'Per 100g'},
+    'Salva nei Miei Cibi': {'en': 'Save to My Foods', 'it': 'Salva nei Miei Cibi'},
+    'Aggiungi al Diario': {'en': 'Add to Diary', 'it': 'Aggiungi al Diario'},
+    'Modifica Ricetta': {'en': 'Edit Recipe', 'it': 'Modifica Ricetta'},
+    'Nuova Ricetta': {'en': 'New Recipe', 'it': 'Nuova Ricetta'},
   };
 
   static String translate(String key, String lang) {

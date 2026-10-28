@@ -21,7 +21,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _selectedWaterMl = 250; // Quantità di acqua selezionata di default (ml)
   bool _showHistoryCalendar = false;
 
   String _formatSelectedDate(DateTime date) {
@@ -298,9 +297,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🔥', style: TextStyle(fontSize: 14)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${appState.currentStreak}',
+                    style: const TextStyle(
+                      color: Colors.orangeAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.manage_accounts_outlined, color: Colors.white70, size: 26),
-            tooltip: 'Profilo & Impostazioni',
+            tooltip: context.tr('Profilo & Impostazioni'),
             onPressed: () => Navigator.pushNamed(context, '/profile'),
           ),
           const SizedBox(width: 8),
@@ -609,94 +634,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildMealSection(context, 'Cena', currentDay.meals.firstWhere((m) => m.name == 'Cena', orElse: () => MealEntity()), appState),
             _buildMealSection(context, 'Spuntini', currentDay.meals.firstWhere((m) => m.name == 'Spuntini', orElse: () => MealEntity()), appState),
 
-            const SizedBox(height: 24),
-
-            // Water Tracker (Polished Glassmorphism)
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.local_drink, color: Colors.blueAccent, size: 28),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Idratazione',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              Text(
-                                '${(currentDay.waterMl == 0 && currentDay.waterGlasses > 0) ? currentDay.waterGlasses * 250 : currentDay.waterMl} ml totali',
-                                style: const TextStyle(color: Colors.white54, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.white54),
-                            onPressed: () => appState.removeWaterMl(_selectedWaterMl),
-                          ),
-                          Text(
-                            '${(currentDay.waterMl == 0 && currentDay.waterGlasses > 0) ? currentDay.waterGlasses * 250 : currentDay.waterMl}',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
-                            onPressed: () => appState.addWaterMl(_selectedWaterMl),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [100, 250, 500, 750].map((ml) {
-                      final isSelected = _selectedWaterMl == ml;
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                          child: ChoiceChip(
-                            label: Text('$ml ml'),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _selectedWaterMl = ml;
-                                });
-                              }
-                            },
-                            selectedColor: Colors.blueAccent.withOpacity(0.3),
-                            backgroundColor: Colors.white.withOpacity(0.03),
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white54,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 12,
-                            ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-
             // Card Media Settimanale
             _buildWeeklyAveragesCard(context, stats, user),
           ],
@@ -922,13 +859,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.analytics_rounded, color: accentCyan, size: 22),
-                  SizedBox(width: 8),
+                  const Icon(Icons.analytics_rounded, color: accentCyan, size: 22),
+                  const SizedBox(width: 8),
                   Text(
-                    'Media Settimanale',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    context.tr('Media Settimanale'),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ],
               ),
@@ -956,7 +893,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
               ),
               Text(
-                'al giorno (Target: ${goalCal.toInt()} kcal)',
+                '${context.tr('al giorno')} (Target: ${goalCal.toInt()} kcal)',
                 style: const TextStyle(color: Colors.white54, fontSize: 12),
               ),
             ],
@@ -972,13 +909,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildWeeklyStatBox('Proteine', '${avgProt.toInt()}g', accentCyan)),
+              Expanded(child: _buildWeeklyStatBox(context.tr('Proteine'), '${avgProt.toInt()}g', accentCyan)),
               const SizedBox(width: 6),
-              Expanded(child: _buildWeeklyStatBox('Carbo', '${avgCarb.toInt()}g', accentYellow)),
+              Expanded(child: _buildWeeklyStatBox(context.tr('Carbo'), '${avgCarb.toInt()}g', accentYellow)),
               const SizedBox(width: 6),
-              Expanded(child: _buildWeeklyStatBox('Grassi', '${avgFat.toInt()}g', accentPink)),
+              Expanded(child: _buildWeeklyStatBox(context.tr('Grassi'), '${avgFat.toInt()}g', accentPink)),
               const SizedBox(width: 6),
-              Expanded(child: _buildWeeklyStatBox('Fibre', '${avgFib.toInt()}g', accentGreen)),
+              Expanded(child: _buildWeeklyStatBox(context.tr('Fibre'), '${avgFib.toInt()}g', accentGreen)),
             ],
           ),
         ],

@@ -10,6 +10,7 @@ class ParsedRecipe {
   final double? totalCookedWeightGrams;
   final double? servingsCount;
   final double? servingWeightGrams;
+  final String? customServingName;
   final List<RecipeIngredient> ingredients;
 
   ParsedRecipe({
@@ -17,6 +18,7 @@ class ParsedRecipe {
     this.totalCookedWeightGrams,
     this.servingsCount,
     this.servingWeightGrams,
+    this.customServingName,
     required this.ingredients,
   });
 
@@ -165,6 +167,7 @@ Rispondi ESCLUSIVAMENTE con un array JSON valido, senza blocchi di codice markdo
       model: modelName,
       apiKey: apiKey,
       systemInstruction: Content.system(systemPrompt),
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );
 
     try {
@@ -192,6 +195,7 @@ Rispondi ESCLUSIVAMENTE con un array JSON valido.
       model: modelName,
       apiKey: apiKey,
       systemInstruction: Content.system(systemPrompt),
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );
 
     try {
@@ -234,6 +238,7 @@ Rispondi ESCLUSIVAMENTE con un JSON:
       model: modelName,
       apiKey: apiKey,
       systemInstruction: Content.system(systemPrompt),
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );
 
     try {
@@ -272,14 +277,19 @@ L'utente ti descrive una ricetta, gli ingredienti utilizzati, e opzionalmente:
 - Il peso o grammatura media della singola porzione (es. 50g)
 
 Devi estrarre con la massima precisione:
-1. "title": Nome descrittivo della ricetta in italiano (es. "Pancake all'Avena Proteici")
-2. "totalCookedWeightGrams": peso finale cotto o totale in grammi (numero o null se non specificato)
-3. "servingsCount": numero di porzioni o pezzi totali (numero o null se non specificato)
-4. "servingWeightGrams": peso medio di una porzione in grammi (numero o null se non specificato)
-5. "ingredients": array di ingredienti, ciascuno con:
+1. "title": Nome descrittivo ed invitante della ricetta in italiano (es. "Pancake all'Avena Proteici")
+2. "totalCookedWeightGrams": peso finale cotto o totale in grammi (numero se specificato o calcolabile, altrimenti null)
+3. "servingsCount": numero di porzioni o pezzi totali (numero se specificato o calcolabile, altrimenti null)
+4. "servingWeightGrams": peso medio di una porzione in grammi (numero se specificato o calcolabile, altrimenti null)
+5. "customServingName": nome singola unità o porzione (es. "Pancake", "Fetta", "Biscotto", "Porzione", "Barretta")
+6. "ingredients": array di ingredienti, ciascuno con:
    - "name": Nome dell'ingrediente in italiano
    - "amountGrams": Grammatura dell'ingrediente usato nella ricetta
    - "caloriesPer100g", "proteinsPer100g", "carbsPer100g", "fatsPer100g", "fibersPer100g": valori nutrizionali per 100g riferiti all'ingrediente.
+
+REGOLE PER LE PORZIONI ED IL TRIANGOLO:
+- Se l'utente specifica peso totale e numero di porzioni (es. "sono usciti 1kg e 20 pancake"), calcola automaticamente "servingWeightGrams" = 50.0.
+- Se una misura non è presente né deducibile dal prompt con certezza, impostala tassativamente a null.
 
 Rispondi ESCLUSIVAMENTE con un JSON valido nel seguente formato:
 {
@@ -287,6 +297,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido nel seguente formato:
   "totalCookedWeightGrams": 1000.0,
   "servingsCount": 20.0,
   "servingWeightGrams": 50.0,
+  "customServingName": "Pancake",
   "ingredients": [
     {
       "name": "Farina d'avena",
@@ -305,6 +316,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido nel seguente formato:
       model: modelName,
       apiKey: apiKey,
       systemInstruction: Content.system(systemPrompt),
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );
 
     try {
@@ -321,6 +333,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido nel seguente formato:
       final totalCookedWeight = (decoded['totalCookedWeightGrams'] as num?)?.toDouble();
       final servingsCount = (decoded['servingsCount'] as num?)?.toDouble();
       final servingWeight = (decoded['servingWeightGrams'] as num?)?.toDouble();
+      final customServingName = decoded['customServingName']?.toString() ?? 'Porzione';
 
       final ingredientsList = <RecipeIngredient>[];
       final rawIngredients = decoded['ingredients'] as List<dynamic>? ?? [];
@@ -357,6 +370,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido nel seguente formato:
         totalCookedWeightGrams: totalCookedWeight,
         servingsCount: servingsCount,
         servingWeightGrams: servingWeight,
+        customServingName: customServingName,
         ingredients: ingredientsList,
       );
     } catch (e) {
@@ -387,6 +401,7 @@ Rispondi ESCLUSIVAMENTE con un JSON:
       model: modelName,
       apiKey: apiKey,
       systemInstruction: Content.system(systemPrompt),
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );
 
     try {
@@ -429,6 +444,7 @@ Sei un estrattore di codice a barre numerico. Restituisci ESCLUSIVAMENTE le cifr
       model: modelName,
       apiKey: apiKey,
       systemInstruction: Content.system(systemPrompt),
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );
 
     try {

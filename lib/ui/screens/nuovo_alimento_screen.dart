@@ -612,9 +612,9 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
     return Scaffold(
       backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        title: const Text(
-          'Nuovo Alimento o Ricetta',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+        title: Text(
+          context.tr('Nuovo Alimento'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -629,8 +629,8 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
               // 1. Tabella Nutrizionale Card
               Expanded(
                 child: _buildActionCard(
-                  title: 'Tabella Nutrizionale 📷',
-                  subtitle: 'Fotografa la tabella sul retro per estrarre i macronutrienti con l\'IA.',
+                  title: '${context.tr('Tabella nutrizionale')} 📷',
+                  subtitle: context.tr('Scansiona etichetta con OCR / IA'),
                   color: accentPink,
                   icon: Icons.camera_alt_outlined,
                   onTap: _scanMacroLabelWithAi,
@@ -641,8 +641,8 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
               // 2. Barcode Card
               Expanded(
                 child: _buildActionCard(
-                  title: 'Codice a Barre 📷',
-                  subtitle: 'Inquadra il codice del prodotto per trovarlo all\'istante nel database.',
+                  title: '${context.tr('Codice a barre')} 📷',
+                  subtitle: context.tr('Scansiona barcode via OpenFoodFacts'),
                   color: accentCyan,
                   icon: Icons.qr_code_scanner_rounded,
                   onTap: _startBarcodeScan,
@@ -653,8 +653,8 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
               // 3. Stima con IA Card
               Expanded(
                 child: _buildActionCard(
-                  title: 'Stima con IA 🪄',
-                  subtitle: 'Descrivi a voce o per testo l\'alimento per calcolare calorie e macro.',
+                  title: '${context.tr('Stima con IA')} 🪄',
+                  subtitle: context.tr('Stima valori e grammi da foto o testo'),
                   color: Colors.purpleAccent,
                   icon: Icons.psychology_outlined,
                   onTap: _showSingleFoodAiPopup,
@@ -665,8 +665,8 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
               // 4. Creazione Ricetta con IA Card (Richiesta specifica tra IA e manuale)
               Expanded(
                 child: _buildActionCard(
-                  title: 'Creazione Ricetta con IA 🍲',
-                  subtitle: 'Componi o detta ricette con ingredienti, peso cotto e calcolo porzioni.',
+                  title: '${context.tr('Creazione di ricetta con IA')} 🍲',
+                  subtitle: context.tr('Scomponi ingredienti e calcola porzioni'),
                   color: Colors.orangeAccent,
                   icon: Icons.soup_kitchen_rounded,
                   onTap: _openRecipeBuilder,
@@ -677,8 +677,8 @@ class _NuovoAlimentoScreenState extends State<NuovoAlimentoScreen> {
               // 5. Inserimento Manuale Card
               Expanded(
                 child: _buildActionCard(
-                  title: 'Inserimento Manuale ✍️',
-                  subtitle: 'Digita nome, marca e valori per 100g con porzione personalizzata.',
+                  title: '${context.tr('Inserimento manuale')} ✍️',
+                  subtitle: context.tr('Inserisci valori e porzione a mano'),
                   color: const Color(0xFF00E676),
                   icon: Icons.edit_note_rounded,
                   onTap: _showManualFoodDialog,

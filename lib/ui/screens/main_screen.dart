@@ -446,18 +446,18 @@ class _MainScreenState extends State<MainScreen> {
         behavior: HitTestBehavior.opaque,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.add_circle_outline_rounded,
                 color: _accentCyan,
                 size: 26,
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'Pasto IA',
-                style: TextStyle(
+                context.tr('Pasto IA'),
+                style: const TextStyle(
                   color: _accentCyan,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -492,11 +492,11 @@ class _MainScreenState extends State<MainScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Row(
             children: [
-              _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-              _buildNavItem(1, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, 'Alimenti'),
+              _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, context.tr('Home')),
+              _buildNavItem(1, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, context.tr('Alimenti')),
               _buildAddButton(),
-              _buildNavItem(2, Icons.add_box_rounded, Icons.add_box_outlined, 'Nuovo'),
-              _buildNavItem(3, Icons.bookmark_rounded, Icons.bookmark_border_rounded, 'Salvati'),
+              _buildNavItem(2, Icons.add_box_rounded, Icons.add_box_outlined, context.tr('Nuovo')),
+              _buildNavItem(3, Icons.bookmark_rounded, Icons.bookmark_border_rounded, context.tr('Salvati')),
             ],
           ),
         ),

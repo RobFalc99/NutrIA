@@ -18,6 +18,8 @@ class AppState extends ChangeNotifier {
   List<Food> _customFoods = [];
   List<Meal> _customMeals = [];
   bool isLoadingOnline = false;
+  int _currentStreak = 0;
+  int get currentStreak => _currentStreak;
 
   bool _isProfileDirty = false;
   bool get isProfileDirty => _isProfileDirty;
@@ -130,6 +132,8 @@ class AppState extends ChangeNotifier {
     if (!_weeklyLogs.any((e) => _isSameDay(e.date, normalizedDate))) {
       _weeklyLogs.add(currentDayLog!);
     }
+
+    await getTrackingStreak();
 
     notifyListeners();
   }
@@ -615,21 +619,26 @@ class AppState extends ChangeNotifier {
     return count >= 7;
   }
 
-  // Calcola la streak: giorni consecutivi con almeno 1 pasto tracciato (a partire da oggi)
+  // Calcola la streak: giorni consecutivi con almeno 1 pasto tracciato (a partire da oggi o ieri)
   Future<int> getTrackingStreak() async {
     final allLogs = await isar.dailyLogEntitys.where().findAll();
     final trackedDays = allLogs
-        .where((log) => log.meals.isNotEmpty)
+        .where((log) => log.meals.any((m) => m.items.isNotEmpty))
         .map((log) => _normalizeDate(log.date))
         .toSet();
 
     final today = _normalizeDate(DateTime.now());
     int streak = 0;
     DateTime check = today;
+    // Se oggi non ha ancora alimenti loggati, manteniamo la serie attiva se ieri è stato tracciato
+    if (!trackedDays.contains(check)) {
+      check = check.subtract(const Duration(days: 1));
+    }
     while (trackedDays.contains(check)) {
       streak++;
       check = check.subtract(const Duration(days: 1));
     }
+    _currentStreak = streak;
     return streak;
   }
 

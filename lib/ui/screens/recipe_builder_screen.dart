@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../domain/models.dart';
 import '../../providers/app_state.dart';
+import '../../providers/translations.dart';
 import '../../data/remote/open_food_facts_service.dart';
 
 class RecipeBuilderScreen extends StatefulWidget {
@@ -30,6 +34,10 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
   final TextEditingController _servingsController = TextEditingController();
   final TextEditingController _portionWeightController = TextEditingController();
 
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  bool _isListening = false;
+
   bool _isAutoCalculatingTriangle = false;
   bool _isLoadingAi = false;
   String? _aiError;
@@ -39,13 +47,75 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
   @override
   void initState() {
     super.initState();
+    _initSpeech();
     if (widget.initialRecipe != null) {
       _loadExistingRecipe(widget.initialRecipe!);
     }
   }
 
+  void _initSpeech() async {
+    try {
+      _speechEnabled = await _speechToText.initialize(
+        onError: (val) => debugPrint('Errore Speech: $val'),
+        onStatus: (val) => debugPrint('Stato Speech: $val'),
+      );
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Speech init failed: $e');
+    }
+  }
+
+  void _startListening() async {
+    final status = await Permission.microphone.request();
+    if (status.isGranted) {
+      try {
+        SystemSound.play(SystemSoundType.click);
+        HapticFeedback.mediumImpact();
+      } catch (_) {}
+
+      setState(() {
+        _isListening = true;
+      });
+
+      final initialPrompt = _promptController.text;
+
+      await _speechToText.listen(
+        onResult: (result) {
+          final words = result.recognizedWords.trim();
+          if (words.isEmpty) return;
+
+          setState(() {
+            _promptController.text = initialPrompt.isEmpty ? words : '$initialPrompt $words';
+            _promptController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _promptController.text.length),
+            );
+          });
+        },
+        localeId: 'it_IT',
+        listenFor: const Duration(minutes: 5),
+        pauseFor: const Duration(seconds: 30),
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permesso microfono non concesso')),
+        );
+      }
+    }
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    if (mounted) {
+      setState(() {
+        _isListening = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _speechToText.stop();
     _promptController.dispose();
     _titleController.dispose();
     _servingNameController.dispose();
@@ -177,24 +247,32 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
 
         if (parsed.totalCookedWeightGrams != null) {
           _totalWeightController.text = parsed.totalCookedWeightGrams!.toInt().toString();
-        } else if (_rawIngredientsWeight > 0) {
-          _totalWeightController.text = _rawIngredientsWeight.toInt().toString();
+        } else {
+          _totalWeightController.clear();
         }
 
         if (parsed.servingsCount != null) {
           _servingsController.text = parsed.servingsCount!.toStringAsFixed(parsed.servingsCount! % 1 == 0 ? 0 : 1);
+        } else {
+          _servingsController.clear();
         }
 
         if (parsed.servingWeightGrams != null) {
           _portionWeightController.text = parsed.servingWeightGrams!.toInt().toString();
         } else {
-          // Risolvi automaticamente il triangolo se abbiamo totale e porzioni
+          // Risolvi automaticamente il triangolo solo se presenti totale e porzioni
           final tot = double.tryParse(_totalWeightController.text);
           final srv = double.tryParse(_servingsController.text);
           if (tot != null && srv != null && srv > 0) {
             final p = tot / srv;
             _portionWeightController.text = p.toStringAsFixed(p % 1 == 0 ? 0 : 1);
+          } else {
+            _portionWeightController.clear();
           }
+        }
+
+        if (parsed.customServingName != null && parsed.customServingName!.isNotEmpty) {
+          _servingNameController.text = parsed.customServingName!;
         }
       });
     } catch (e) {
@@ -477,6 +555,20 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
             decoration: InputDecoration(
               hintText: 'Es: Ho fatto 20 pancake: 300g avena, 4 uova, 400ml latte. In totale cotti pesano 1000g.',
               hintStyle: const TextStyle(color: Colors.white30, fontSize: 12),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: _isListening ? accentPink : accentCyan,
+                ),
+                onPressed: () {
+                  if (_isListening) {
+                    _stopListening();
+                  } else {
+                    _startListening();
+                  }
+                },
+                tooltip: context.tr('Dettatura vocale 🎙️'),
+              ),
               filled: true,
               fillColor: Colors.white.withOpacity(0.04),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -546,6 +638,59 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
     );
   }
 
+  Widget _buildTriangleBox({
+    required String title,
+    required String subtitle,
+    required String suffix,
+    required TextEditingController controller,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white38, fontSize: 9),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                suffixText: suffix,
+                suffixStyle: const TextStyle(color: accentYellow, fontWeight: FontWeight.bold, fontSize: 12),
+                filled: true,
+                fillColor: Colors.black38,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+              onChanged: onChanged,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPortionTriangleCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -558,12 +703,12 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.calculate, color: accentYellow, size: 18),
-              SizedBox(width: 8),
+            children: [
+              const Icon(Icons.calculate, color: accentYellow, size: 18),
+              const SizedBox(width: 8),
               Text(
-                'Triangolo delle Porzioni 📐',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                '${context.tr('Triangolo delle Porzioni')} 📐',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ],
           ),
@@ -575,55 +720,28 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _totalWeightController,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
-                    labelText: 'Peso Totale Cotto',
-                    labelStyle: const TextStyle(color: Colors.white60, fontSize: 11),
-                    suffixText: 'g',
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.03),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
-                  onChanged: _onTotalWeightChanged,
-                ),
+              _buildTriangleBox(
+                title: context.tr('Peso Totale Cotto'),
+                subtitle: '(Cotto / finito)',
+                suffix: 'g',
+                controller: _totalWeightController,
+                onChanged: _onTotalWeightChanged,
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _servingsController,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
-                    labelText: 'N. Porzioni',
-                    labelStyle: const TextStyle(color: Colors.white60, fontSize: 11),
-                    suffixText: 'pz',
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.03),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
-                  onChanged: _onServingsChanged,
-                ),
+              _buildTriangleBox(
+                title: context.tr('N. Porzioni'),
+                subtitle: '(Pezzi totali)',
+                suffix: 'pz',
+                controller: _servingsController,
+                onChanged: _onServingsChanged,
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _portionWeightController,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
-                    labelText: 'Peso Porzione',
-                    labelStyle: const TextStyle(color: Colors.white60, fontSize: 11),
-                    suffixText: 'g',
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.03),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
-                  onChanged: _onPortionWeightChanged,
-                ),
+              _buildTriangleBox(
+                title: context.tr('Peso Porzione'),
+                subtitle: '(Grammatura)',
+                suffix: 'g',
+                controller: _portionWeightController,
+                onChanged: _onPortionWeightChanged,
               ),
             ],
           ),

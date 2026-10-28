@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/app_state.dart';
 import '../../data/local/entities/user_profile_entity.dart';
@@ -330,15 +331,13 @@ class _ProfileFormState extends State<ProfileForm> {
     final canPopRoute = Navigator.canPop(context);
 
     return PopScope(
-      canPop: false,
+      canPop: _currentSection == ProfileSection.main,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (_currentSection != ProfileSection.main) {
           setState(() {
             _currentSection = ProfileSection.main;
           });
-        } else if (canPopRoute) {
-          Navigator.of(context).maybePop();
         }
       },
       child: Scaffold(
@@ -359,7 +358,7 @@ class _ProfileFormState extends State<ProfileForm> {
               : (canPopRoute
                   ? IconButton(
                       icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                      onPressed: () => Navigator.of(context).maybePop(),
+                      onPressed: () => Navigator.of(context).pop(),
                     )
                   : null),
           title: Text(
@@ -822,6 +821,40 @@ class _ProfileFormState extends State<ProfileForm> {
           context.tr('Salvata solo sul dispositivo. Usata per le funzioni AI.'),
           style: const TextStyle(color: Colors.white38, fontSize: 11),
         ),
+        const SizedBox(height: 10),
+        InkWell(
+          onTap: () async {
+            final uri = Uri.parse('https://aistudio.google.com/app/apikey');
+            try {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            } catch (e) {
+              debugPrint('Errore apertura Google AI Studio: $e');
+            }
+          },
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.open_in_new, color: Color(0xFF00FFC2), size: 16),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    context.tr('Ottieni o visualizza le tue API Key su Google AI Studio'),
+                    style: const TextStyle(
+                      color: Color(0xFF00FFC2),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Color(0xFF00FFC2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1058,19 +1091,41 @@ class _ProfileFormState extends State<ProfileForm> {
                 style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 12),
-              const Row(
-                children: [
-                  Icon(Icons.email_outlined, color: Color(0xFF00FFC2), size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'robsfalc+nutria@gmail.com',
-                    style: TextStyle(
-                      color: Color(0xFF00FFC2),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+              InkWell(
+                onTap: () async {
+                  final emailUri = Uri(
+                    scheme: 'mailto',
+                    path: 'robsfalc+nutria@gmail.com',
+                    query: 'subject=NutrIA Feedback & Support',
+                  );
+                  try {
+                    await launchUrl(emailUri, mode: LaunchMode.externalApplication);
+                  } catch (e) {
+                    debugPrint('Errore lancio mailto: $e');
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.email_outlined, color: Color(0xFF00FFC2), size: 18),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'robsfalc+nutria@gmail.com',
+                        style: TextStyle(
+                          color: Color(0xFF00FFC2),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Color(0xFF00FFC2),
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.send_rounded, color: Color(0xFF00FFC2), size: 14),
+                    ],
                   ),
-                ],
+                ),
               ),
             ],
           ),
