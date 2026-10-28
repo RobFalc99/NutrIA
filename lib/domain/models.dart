@@ -188,8 +188,8 @@ class DailyLog {
 }
 
 class WeeklyStats {
-  final DateTime startDate; // Lunedì
-  final DateTime endDate;   // Domenica
+  final DateTime startDate; // Inizio settimana
+  final DateTime endDate;   // Fine settimana
   final List<DailyLog> days;
 
   WeeklyStats({
@@ -198,37 +198,46 @@ class WeeklyStats {
     required this.days,
   });
 
-  // Calcolo della media basata SOLO sui giorni tracciati (l'80% del 80/20)
+  // Giorni tracciati nella settimana
   List<DailyLog> get trackedDays => days.where((d) => d.isTracked).toList();
 
+  // Giorni con pasti registrati nella settimana
+  List<DailyLog> get activeDays {
+    final withMeals = days.where((d) => d.meals.any((m) => m.items.isNotEmpty) || d.dailyCalories > 0).toList();
+    return withMeals.isNotEmpty ? withMeals : trackedDays;
+  }
+
+  // Media calorie giornaliere sui giorni tracciati della settimana
   double get averageCalories {
     if (trackedDays.isEmpty) return 0;
     double total = trackedDays.fold(0.0, (sum, day) => sum + day.dailyCalories);
     return total / trackedDays.length;
   }
 
-  // Altre medie utili...
+  // Media proteine giornaliere
   double get averageProteins {
     if (trackedDays.isEmpty) return 0;
     return trackedDays.fold(0.0, (sum, day) => sum + day.dailyProteins) / trackedDays.length;
   }
 
+  // Media carboidrati giornalieri
   double get averageCarbs {
     if (trackedDays.isEmpty) return 0;
     return trackedDays.fold(0.0, (sum, day) => sum + day.dailyCarbs) / trackedDays.length;
   }
 
+  // Media grassi giornalieri
   double get averageFats {
     if (trackedDays.isEmpty) return 0;
     return trackedDays.fold(0.0, (sum, day) => sum + day.dailyFats) / trackedDays.length;
   }
 
+  // Media fibre giornaliere
   double get averageFibers {
     if (trackedDays.isEmpty) return 0;
     return trackedDays.fold(0.0, (sum, day) => sum + day.dailyFibers) / trackedDays.length;
   }
 
-  // Verifica se la regola 80/20 è rispettata nella settimana corrente
-  // Su 7 giorni, l'80% sono circa 5.6 giorni (quindi 5 o 6 giorni tracciati, 1 o 2 liberi)
-  double get trackingPercentage => (trackedDays.length / 7) * 100;
+  // Percentuale di tracciamento nella settimana
+  double get trackingPercentage => (trackedDays.length / (days.isEmpty ? 7 : days.length)) * 100;
 }

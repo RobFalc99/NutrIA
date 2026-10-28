@@ -67,9 +67,9 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging && _tabController.index == 3) {
+      if (_tabController.indexIsChanging && _tabController.index == 1) {
         setState(() {
           _historyFuture = context.read<AppState>().getFoodHistory();
         });
@@ -949,9 +949,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
             indicatorColor: accentCyan,
             overlayColor: WidgetStateProperty.all(Colors.transparent),
             tabs: const [
-              Tab(icon: Icon(Icons.bookmark), text: 'Salvati'),
               Tab(icon: Icon(Icons.language), text: 'Web'),
-              Tab(icon: Icon(Icons.add_circle), text: 'Nuovo'),
               Tab(icon: Icon(Icons.history), text: 'Cronologia'),
             ],
           ),
@@ -993,9 +991,7 @@ class _AlimentiScreenState extends State<AlimentiScreen> with SingleTickerProvid
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildMyFoodsTab(),
                   _buildSearchTab(),
-                  _buildNewFoodTab(),
                   _buildHistoryTab(),
                 ],
               ),

@@ -9,8 +9,8 @@ void main() {
     // Carichiamo la chiave API dall'ambiente locale
     final apiKey = Platform.environment['GEMINI_API_KEY'];
     
-    // Configura il modello standard di kCali
-    const standardModel = 'gemini-2.0-flash-lite';
+    // Configura il modello standard di NutrIA
+    const standardModel = GeminiService.defaultFastModel;
 
     // Mock di bytes per immagini (1x1 pixel PNG valido)
     final mockImageBytes = [

@@ -169,6 +169,8 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> addCustomFood(Food food) => saveCustomFood(food);
+
   // Elimina un cibo personalizzato ed aggiorna la lista locale in-memory
   Future<void> deleteCustomFood(String foodId) async {
     isLoadingOnline = true;
@@ -206,7 +208,7 @@ class AppState extends ChangeNotifier {
     final model = currentUser?.geminiModel;
     return GeminiService(
       apiKey: key,
-      modelName: (model == null || model.trim().isEmpty) ? 'gemini-2.5-flash' : model.trim(),
+      modelName: (model == null || model.trim().isEmpty) ? GeminiService.defaultFastModel : model.trim(),
     );
   }
 

@@ -277,11 +277,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundImage: AssetImage('assets/logo_clear.png'),
+            Image.asset(
+              'assets/logo_clear.png',
+              height: 38,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             const Text(
               'NutrIA',
               style: TextStyle(
@@ -296,30 +297,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          if (user.use8020Mode)
-            Row(
-              children: [
-                Text(
-                  currentDay.isTracked ? 'Tracciato' : 'Libero',
-                  style: TextStyle(
-                    color: currentDay.isTracked ? accentCyan : accentPink,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Switch(
-                  value: currentDay.isTracked,
-                  onChanged: (val) {
-                    appState.toggleTrackedCurrentDay();
-                  },
-                  activeColor: accentCyan,
-                  activeTrackColor: accentCyan.withOpacity(0.2),
-                  inactiveThumbColor: accentPink,
-                  inactiveTrackColor: accentPink.withOpacity(0.2),
-                ),
-              ],
-            ),
-          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.manage_accounts_outlined, color: Colors.white70, size: 26),
+            tooltip: 'Profilo & Impostazioni',
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -479,10 +462,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: 10),
                             _buildQuickMacroBadge('Grassi', currentFat, fatGoal, accentPink),
                           ],
-                          if (trackingMode == 'custom') ...[
-                            const SizedBox(height: 10),
-                            _buildQuickMacroBadge('Fibre', currentFib, fiberGoal, accentGreen),
-                          ],
+                          const SizedBox(height: 10),
+                          _buildQuickMacroBadge('Fibre', currentFib, fiberGoal > 0 ? fiberGoal : 30, accentGreen),
                         ],
                       ),
                     ],
@@ -503,10 +484,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildLinearMacroBar('Grassi', currentFat, fatGoal, fatProgress, accentPink),
                   ],
 
-                  if (trackingMode == 'custom') ...[
-                    const SizedBox(height: 12),
-                    _buildLinearMacroBar('Fibre', currentFib, fiberGoal, fiberProgress, accentGreen),
-                  ],
+                  const SizedBox(height: 12),
+                  _buildLinearMacroBar('Fibre', currentFib, fiberGoal > 0 ? fiberGoal : 30, fiberProgress, accentGreen),
                 ],
               ),
             ),
@@ -716,6 +695,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+
+            // Card Media Settimanale
+            _buildWeeklyAveragesCard(context, stats, user),
           ],
         ),
       ),
@@ -911,22 +893,113 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildWeeklyStatBox(String label, String value, Color color) {
+  Widget _buildWeeklyAveragesCard(BuildContext context, WeeklyStats stats, UserProfile user) {
+    const accentCyan = Color(0xFF00FFC2);
+    const accentPink = Color(0xFFFF007F);
+    const accentYellow = Color(0xFFFFD700);
+    const accentGreen = Color(0xFF00E676);
+
+    final avgCal = stats.averageCalories;
+    final avgProt = stats.averageProteins;
+    final avgCarb = stats.averageCarbs;
+    final avgFat = stats.averageFats;
+    final avgFib = stats.averageFibers;
+    final activeDaysCount = stats.activeDays.length;
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.analytics_rounded, color: accentCyan, size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'Media Settimanale',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: accentCyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$activeDaysCount/7 gg',
+                  style: const TextStyle(color: accentCyan, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '${avgCal.toInt()} kcal',
+                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              Text(
+                'al giorno (Target: ${user.goalCalories.toInt()} kcal)',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: user.goalCalories > 0 ? (avgCal / user.goalCalories).clamp(0.0, 1.0) : 0.0,
+            backgroundColor: Colors.white12,
+            color: avgCal <= user.goalCalories ? accentCyan : accentPink,
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _buildWeeklyStatBox('Proteine', '${avgProt.toInt()}g', accentCyan)),
+              const SizedBox(width: 6),
+              Expanded(child: _buildWeeklyStatBox('Carbo', '${avgCarb.toInt()}g', accentYellow)),
+              const SizedBox(width: 6),
+              Expanded(child: _buildWeeklyStatBox('Grassi', '${avgFat.toInt()}g', accentPink)),
+              const SizedBox(width: 6),
+              Expanded(child: _buildWeeklyStatBox('Fibre', '${avgFib.toInt()}g', accentGreen)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyStatBox(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10), overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold),
           ),
         ],
       ),

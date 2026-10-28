@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/app_state.dart';
 import '../../data/local/entities/user_profile_entity.dart';
 import '../../providers/translations.dart';
 import '../../domain/models.dart';
+import '../../data/remote/gemini_service.dart';
 
 enum ProfileSection {
   main,
@@ -65,6 +67,10 @@ class _ProfileFormState extends State<ProfileForm> {
   late String _languageCode;
   bool _obscureApiKey = true;
 
+  bool _trackFibers = true;
+  List<String> _availableModels = List.from(GeminiService.defaultFallbackModels);
+  bool _isLoadingModels = false;
+
   bool _isDirty = false;
   ProfileSection _currentSection = ProfileSection.main;
 
@@ -112,7 +118,47 @@ class _ProfileFormState extends State<ProfileForm> {
   void initState() {
     super.initState();
     _initControllers();
+    _loadTrackFibersSetting();
+    _loadAvailableModels(notify: false);
     context.read<AppState>().saveProfileCallback = _save;
+  }
+
+  Future<void> _loadTrackFibersSetting() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final val = prefs.getBool('track_fibers') ?? true;
+      if (mounted) {
+        setState(() => _trackFibers = val);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _setTrackFibers(bool val) async {
+    setState(() => _trackFibers = val);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('track_fibers', val);
+    } catch (_) {}
+  }
+
+  Future<void> _loadAvailableModels({bool notify = true}) async {
+    final key = _apiKeyController.text.trim();
+    if (notify) {
+      setState(() => _isLoadingModels = true);
+    }
+    final models = await GeminiService.fetchAvailableModels(key);
+    if (!mounted) return;
+    setState(() {
+      _availableModels = models;
+      if (!_availableModels.contains(_selectedModel)) {
+        if (_availableModels.contains(GeminiService.defaultFastModel)) {
+          _selectedModel = GeminiService.defaultFastModel;
+        } else if (_availableModels.isNotEmpty) {
+          _selectedModel = _availableModels.first;
+        }
+      }
+      _isLoadingModels = false;
+    });
   }
 
   void _initControllers() {
@@ -126,7 +172,9 @@ class _ProfileFormState extends State<ProfileForm> {
 
     _trackingMode = widget.user.trackingMode;
     _use8020Mode = widget.user.use8020Mode;
-    _selectedModel = widget.user.geminiModel ?? 'gemma-4-26b-a4b-it';
+    _selectedModel = (widget.user.geminiModel != null && widget.user.geminiModel!.trim().isNotEmpty)
+        ? widget.user.geminiModel!.trim()
+        : GeminiService.defaultFastModel;
     _historyLimit = widget.user.historyLimit;
     _startupScreen = widget.user.startupScreen;
     _defaultAlimentiTab = widget.user.defaultAlimentiTab;
@@ -279,46 +327,65 @@ class _ProfileFormState extends State<ProfileForm> {
       );
     }
     final stats = appState.weeklyStats;
+    final canPopRoute = Navigator.canPop(context);
 
-    return Scaffold(
-      backgroundColor: context.bgPrimary,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: _currentSection == ProfileSection.main
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    _currentSection = ProfileSection.main;
-                  });
-                },
-              ),
-        title: Text(
-          _getSectionTitle(_currentSection),
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        actions: [
-          if (_isDirty)
-            TextButton(
-              onPressed: _save,
-              child: Text(
-                context.tr('SALVA'),
-                style: const TextStyle(
-                  color: Color(0xFF00FFC2),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentSection != ProfileSection.main) {
+          setState(() {
+            _currentSection = ProfileSection.main;
+          });
+        } else if (canPopRoute) {
+          Navigator.of(context).maybePop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: context.bgPrimary,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: _currentSection != ProfileSection.main
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                  onPressed: () {
+                    setState(() {
+                      _currentSection = ProfileSection.main;
+                    });
+                  },
+                )
+              : (canPopRoute
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    )
+                  : null),
+          title: Text(
+            _getSectionTitle(_currentSection),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          actions: [
+            if (_isDirty)
+              TextButton(
+                onPressed: _save,
+                child: Text(
+                  context.tr('SALVA'),
+                  style: const TextStyle(
+                    color: Color(0xFF00FFC2),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
-            ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: _buildBody(context, user, stats, appState),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Form(
+          key: _formKey,
+          child: _buildBody(context, user, stats, appState),
+        ),
       ),
     );
   }
@@ -443,14 +510,14 @@ class _ProfileFormState extends State<ProfileForm> {
         ),
         _buildMenuItem(
           title: context.tr('Analisi Settimanale'),
-          subtitle: context.tr('Statistiche, medie e rispetto della regola 80/20'),
+          subtitle: context.tr('Statistiche e medie giornaliere di calorie e macronutrienti'),
           icon: Icons.analytics_outlined,
           color: const Color(0xFFFF007F),
           onTap: () => setState(() => _currentSection = ProfileSection.analisiSettimanale),
         ),
         _buildMenuItem(
           title: context.tr('Impostazioni di Tracciamento'),
-          subtitle: context.tr('Modalità di tracking (Light/Standard/Custom) e regola 80/20'),
+          subtitle: context.tr('Modalità di tracking, fibre e nutrienti di dettaglio'),
           icon: Icons.track_changes_rounded,
           color: const Color(0xFFFFD700),
           onTap: () => setState(() => _currentSection = ProfileSection.impostazioniTracciamento),
@@ -505,14 +572,14 @@ class _ProfileFormState extends State<ProfileForm> {
   }
 
   Widget _buildAnalisiSettimanaleSection(BuildContext context, WeeklyStats stats, AppState appState, UserProfileEntity user) {
-    final hasData = appState.hasEnoughDataForAverage;
-    final compl8020 = stats.trackingPercentage;
+    final activeDaysCount = stats.activeDays.length;
+    final avgCal = stats.averageCalories;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       physics: const BouncingScrollPhysics(),
       children: [
-        // 80/20 compliance card
+        // Media Settimanale card
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -531,7 +598,7 @@ class _ProfileFormState extends State<ProfileForm> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    context.tr('Rispetto Regola 80/20'),
+                    context.tr('Media Settimanale'),
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Container(
@@ -541,65 +608,47 @@ class _ProfileFormState extends State<ProfileForm> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${stats.trackedDays.length}/7 ${context.tr('Giorni Tracciati')}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                      '$activeDaysCount/7 ${context.tr('Giorni con pasti')}',
+                      style: const TextStyle(color: Color(0xFF00FFC2), fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    '${avgCal.toInt()} ',
+                    style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    'kcal / giorno (Target: ${user.goalCalories.toInt()} kcal)',
+                    style: const TextStyle(color: Colors.white60, fontSize: 13),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               LinearProgressIndicator(
-                value: compl8020 / 100,
+                value: user.goalCalories > 0 ? (avgCal / user.goalCalories).clamp(0.0, 1.0) : 0.0,
                 backgroundColor: Colors.white12,
-                color: compl8020 >= 80 ? const Color(0xFF00FFC2) : const Color(0xFFFFD700),
+                color: avgCal <= user.goalCalories ? const Color(0xFF00FFC2) : const Color(0xFFFF007F),
                 minHeight: 8,
                 borderRadius: BorderRadius.circular(4),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${compl8020.toInt()}% di aderenza questa settimana. La regola consiglia l\'80% per sostenibilità (circa 5-6 giorni su 7).',
-                style: const TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
 
-        // Averages card
-        if (!hasData)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.02),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.hourglass_empty, color: Colors.white38, size: 22),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    context.tr('Dati insufficienti — registra almeno 7 giorni per vedere le medie.'),
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else ...[
-          const _SectionTitle(title: 'Medie ultimi 7 giorni (esclusi Cheat Days)'),
-          const SizedBox(height: 10),
-          _buildAverageRow(context.tr('Calorie Medie'), '${stats.averageCalories.toInt()} / ${user.goalCalories.toInt()} kcal', stats.averageCalories <= user.goalCalories ? const Color(0xFF00FFC2) : const Color(0xFFFF007F)),
-          _buildAverageRow(context.tr('Proteine Medie'), '${stats.averageProteins.toInt()} / ${user.goalProteins.toInt()} g', stats.averageProteins >= user.goalProteins ? const Color(0xFF00FFC2) : const Color(0xFFFFD700)),
-          if (user.trackingMode != 'light') ...[
-            _buildAverageRow(context.tr('Carboidrati Medi'), '${stats.averageCarbs.toInt()} / ${user.goalCarbs.toInt()} g', const Color(0xFFFFD700)),
-            _buildAverageRow(context.tr('Grassi Medi'), '${stats.averageFats.toInt()} / ${user.goalFats.toInt()} g', const Color(0xFF00E676)),
-          ],
-          if (user.trackingMode == 'custom') ...[
-            _buildAverageRow(context.tr('Fibre Medie'), '${stats.averageFibers.toInt()} / ${user.goalFibers.toInt()} g', Colors.cyan),
-          ],
-        ],
+        const _SectionTitle(title: 'Medie Giornaliere della Settimana'),
+        const SizedBox(height: 10),
+        _buildAverageRow(context.tr('Calorie Medie'), '${stats.averageCalories.toInt()} / ${user.goalCalories.toInt()} kcal', stats.averageCalories <= user.goalCalories ? const Color(0xFF00FFC2) : const Color(0xFFFF007F)),
+        _buildAverageRow(context.tr('Proteine Medie'), '${stats.averageProteins.toInt()} / ${user.goalProteins.toInt()} g', stats.averageProteins >= user.goalProteins ? const Color(0xFF00FFC2) : const Color(0xFFFFD700)),
+        _buildAverageRow(context.tr('Carboidrati Medi'), '${stats.averageCarbs.toInt()} / ${user.goalCarbs.toInt()} g', const Color(0xFFFFD700)),
+        _buildAverageRow(context.tr('Grassi Medi'), '${stats.averageFats.toInt()} / ${user.goalFats.toInt()} g', const Color(0xFF00E676)),
+        _buildAverageRow(context.tr('Fibre Medie'), '${stats.averageFibers.toInt()} / ${user.goalFibers.toInt()} g', Colors.cyan),
 
         const SizedBox(height: 20),
         const _SectionTitle(title: 'Dettaglio Giornaliero Settimana'),
@@ -607,8 +656,9 @@ class _ProfileFormState extends State<ProfileForm> {
         // Day-by-day detail
         ...stats.days.map((day) {
           final String dayName = _getFormattedDayName(day.date);
-          final String trackingLabel = day.isTracked ? context.tr('Tracciato') : context.tr('Cheat/Libero');
-          final Color badgeColor = day.isTracked ? const Color(0xFF00FFC2) : const Color(0xFFFF007F);
+          final bool hasItems = day.dailyCalories > 0;
+          final String trackingLabel = hasItems ? context.tr('Registrato') : context.tr('Nessun pasto');
+          final Color badgeColor = hasItems ? const Color(0xFF00FFC2) : Colors.white38;
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
@@ -629,7 +679,7 @@ class _ProfileFormState extends State<ProfileForm> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${day.dailyCalories.toInt()} kcal · P:${day.dailyProteins.toInt()}g | C:${day.dailyCarbs.toInt()}g | G:${day.dailyFats.toInt()}g',
+                      '${day.dailyCalories.toInt()} kcal · P:${day.dailyProteins.toInt()}g | C:${day.dailyCarbs.toInt()}g | G:${day.dailyFats.toInt()}g | Fib:${day.dailyFibers.toInt()}g',
                       style: const TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                   ],
@@ -711,19 +761,34 @@ class _ProfileFormState extends State<ProfileForm> {
           ],
         ),
         const SizedBox(height: 24),
-        const _SectionTitle(title: 'Regola 80/20'),
+        const _SectionTitle(title: 'Tracciamento di Dettaglio'),
         const SizedBox(height: 10),
         _ToggleCard(
-          title: context.tr('Abilita modalita\' 80/20'),
-          subtitle: context.tr('I giorni non tracciati vengono escluse dalle medie settimanali.'),
-          value: _use8020Mode,
-          onChanged: (v) => setState(() { _use8020Mode = v; _checkIfDirty(); }),
+          title: context.tr('Traccia Fibre Alimentari 🥦'),
+          subtitle: context.tr('Visualizza e monitora l\'assunzione di fibre giornaliere e negli alimenti.'),
+          value: _trackFibers,
+          onChanged: (v) => _setTrackFibers(v),
+        ),
+        const SizedBox(height: 10),
+        const _DisabledFeatureCard(
+          title: 'Grassi Saturi e Insaturi 🥑',
+          subtitle: 'Scomposizione lipidica dettagliata per ogni alimento.',
+        ),
+        const _DisabledFeatureCard(
+          title: 'Zuccheri Semplici 🍬',
+          subtitle: 'Monitoraggio specifico degli zuccheri rispetto ai carboidrati complessi.',
+        ),
+        const _DisabledFeatureCard(
+          title: 'Micronutrienti & Integrazione 💊',
+          subtitle: 'Tracciamento di vitamine, sali minerali e integratori alimentari.',
         ),
       ],
     );
   }
 
   Widget _buildImpostazioniAISection(BuildContext context) {
+    final Set<String> dropdownOptions = {..._availableModels, _selectedModel};
+
     return ListView(
       padding: const EdgeInsets.all(16),
       physics: const BouncingScrollPhysics(),
@@ -734,6 +799,7 @@ class _ProfileFormState extends State<ProfileForm> {
           controller: _apiKeyController,
           obscureText: _obscureApiKey,
           style: const TextStyle(color: Colors.white),
+          onChanged: (_) => _checkIfDirty(),
           decoration: InputDecoration(
             labelText: 'Gemini API Key',
             labelStyle: const TextStyle(color: Colors.white54),
@@ -757,10 +823,27 @@ class _ProfileFormState extends State<ProfileForm> {
           style: const TextStyle(color: Colors.white38, fontSize: 11),
         ),
         const SizedBox(height: 24),
-        const _SectionTitle(title: 'Modello IA Selezionato'),
-        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const _SectionTitle(title: 'Modello IA Selezionato'),
+            if (_isLoadingModels)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00FFC2)),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFF00FFC2), size: 20),
+                tooltip: 'Aggiorna elenco modelli dalle API online',
+                onPressed: () => _loadAvailableModels(notify: true),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          initialValue: _selectedModel,
+          value: dropdownOptions.contains(_selectedModel) ? _selectedModel : dropdownOptions.first,
           style: const TextStyle(color: Colors.white),
           dropdownColor: const Color(0xFF1C1C24),
           isExpanded: true,
@@ -773,15 +856,16 @@ class _ProfileFormState extends State<ProfileForm> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FFC2))),
           ),
-          items: const [
-            DropdownMenuItem(value: 'gemma-4-26b-a4b-it', child: Text('Gemma 4 26B (Mixture-of-Experts) - Consigliato')),
-            DropdownMenuItem(value: 'gemma-4-31b-it', child: Text('Gemma 4 31B (Dense)')),
-            DropdownMenuItem(value: 'gemini-3.5-flash', child: Text('Gemini 3.5 Flash')),
-            DropdownMenuItem(value: 'gemini-3-flash', child: Text('Gemini 3 Flash')),
-            DropdownMenuItem(value: 'gemini-3.1-flash-lite', child: Text('Gemini 3.1 Flash Lite')),
-            DropdownMenuItem(value: 'gemini-2.5-flash', child: Text('Gemini 2.5 Flash')),
-            DropdownMenuItem(value: 'gemini-2.5-flash-lite', child: Text('Gemini 2.5 Flash Lite')),
-          ],
+          items: dropdownOptions.map((m) {
+            String label = m;
+            if (m == GeminiService.defaultFastModel) {
+              label = '$m (Consigliato ⚡)';
+            }
+            return DropdownMenuItem<String>(
+              value: m,
+              child: Text(label, overflow: TextOverflow.ellipsis),
+            );
+          }).toList(),
           onChanged: (val) {
             if (val != null) {
               setState(() { _selectedModel = val; });
@@ -1163,6 +1247,56 @@ class _ToggleCard extends StatelessWidget {
         activeThumbColor: context.accentCyan,
         title: Text(title, style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle, style: TextStyle(color: context.textMuted, fontSize: 12)),
+      ),
+    );
+  }
+}
+
+class _DisabledFeatureCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _DisabledFeatureCard({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: context.bgCardAlt.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+      ),
+      child: ListTile(
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Coming soon',
+                style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: Colors.white30, fontSize: 11),
+        ),
+        trailing: const Switch(
+          value: false,
+          onChanged: null,
+        ),
       ),
     );
   }

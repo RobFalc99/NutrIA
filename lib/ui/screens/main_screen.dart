@@ -9,6 +9,8 @@ import '../../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'alimenti_screen.dart';
+import 'nuovo_alimento_screen.dart';
+import 'salvati_screen.dart';
 
 /// Schermata principale con BottomNavigationBar ed integrazione QuickActions (Android/iOS).
 /// Dashboard, Alimenti e Impostazioni sono sempre montate nell'albero dei widget.
@@ -232,14 +234,9 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onTabTapped(int index) {
     HapticFeedback.lightImpact();
-    final appState = Provider.of<AppState>(context, listen: false);
-    if (_currentIndex == 2 && index != 2 && appState.isProfileDirty) {
-      _showUnsavedChangesDialog(index);
-    } else {
-      setState(() {
-        _currentIndex = index;
-      });
-    }
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   void _showUnsavedChangesDialog(int targetIndex) {
@@ -400,17 +397,29 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.bgPrimary,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          const DashboardScreen(),
-          AlimentiScreen(isActive: _currentIndex == 1),
-          const ProfileScreen(),
-        ],
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          setState(() {
+            _currentIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: context.bgPrimary,
+        body: IndexedStack(
+          index: _currentIndex,
+          children: [
+            const DashboardScreen(),
+            AlimentiScreen(isActive: _currentIndex == 1),
+            const NuovoAlimentoScreen(),
+            SalvatiScreen(isActive: _currentIndex == 3),
+          ],
+        ),
+        bottomNavigationBar: _buildBottomNavBar(),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -480,13 +489,14 @@ class _MainScreenState extends State<MainScreen> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Row(
             children: [
               _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
               _buildNavItem(1, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, 'Alimenti'),
               _buildAddButton(),
-              _buildNavItem(2, Icons.manage_accounts_rounded, Icons.manage_accounts_outlined, 'Profilo'),
+              _buildNavItem(2, Icons.add_box_rounded, Icons.add_box_outlined, 'Nuovo'),
+              _buildNavItem(3, Icons.bookmark_rounded, Icons.bookmark_border_rounded, 'Salvati'),
             ],
           ),
         ),
@@ -496,11 +506,13 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
     final isSelected = _currentIndex == index;
-    final color = index == 0
-        ? _accentCyan
-        : index == 1
-            ? Colors.orangeAccent
-            : _accentPink;
+    final color = switch (index) {
+      0 => _accentCyan,
+      1 => Colors.orangeAccent,
+      2 => _accentPink,
+      3 => const Color(0xFF00E676),
+      _ => _accentCyan,
+    };
 
     return Expanded(
       child: GestureDetector(

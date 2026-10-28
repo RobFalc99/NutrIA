@@ -577,7 +577,7 @@ class _QuickFoodLoggerSheetState extends State<QuickFoodLoggerSheet> {
           ],
         ),
         subtitle: Text(
-          '${food.caloriesPer100g.toStringAsFixed(0)} kcal/100g • P:${food.proteinsPer100g.toStringAsFixed(1)}g C:${food.carbsPer100g.toStringAsFixed(1)}g F:${food.fatsPer100g.toStringAsFixed(1)}g',
+          '${food.caloriesPer100g.toStringAsFixed(0)} kcal/100g • P:${food.proteinsPer100g.toStringAsFixed(1)}g C:${food.carbsPer100g.toStringAsFixed(1)}g F:${food.fatsPer100g.toStringAsFixed(1)}g Fib:${food.fibersPer100g.toStringAsFixed(1)}g',
           style: const TextStyle(color: Colors.white54, fontSize: 11),
         ),
         trailing: const Icon(Icons.add_circle_outline, color: accentCyan, size: 22),

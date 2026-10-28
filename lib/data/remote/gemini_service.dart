@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../domain/models.dart';
 
@@ -65,7 +67,73 @@ class GeminiService {
   final String apiKey;
   final String modelName;
 
-  GeminiService({required this.apiKey, this.modelName = 'gemini-2.5-flash'});
+  static const String defaultFastModel = 'gemini-3.5-flash-lite';
+
+  GeminiService({required this.apiKey, this.modelName = defaultFastModel});
+
+  /// Interroga online l'API ufficiale di Google Generative Language per recuperare dinamicamente
+  /// i modelli abilitati e supportati per la generazione di contenuti testuali/multimodali.
+  static Future<List<String>> fetchAvailableModels(String apiKey) async {
+    final cleanKey = apiKey.trim();
+    if (cleanKey.isEmpty) {
+      return defaultFallbackModels;
+    }
+
+    try {
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models?key=$cleanKey');
+      final response = await http.get(url).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final modelsRaw = decoded['models'] as List<dynamic>? ?? [];
+        final parsed = <String>[];
+
+        for (final item in modelsRaw) {
+          if (item is Map<String, dynamic>) {
+            final rawName = (item['name'] as String? ?? '').replaceFirst('models/', '');
+            final methods = (item['supportedGenerationMethods'] as List<dynamic>? ?? []).cast<String>();
+            // Filtra solo i modelli in grado di generare contenuti
+            if (methods.contains('generateContent') && rawName.isNotEmpty) {
+              parsed.add(rawName);
+            }
+          }
+        }
+
+        if (parsed.isNotEmpty) {
+          // Ordina dando priorità ai modelli flash/lite più veloci ed economici per l'uso quotidiano
+          parsed.sort((a, b) {
+            int scoreA = _modelPriority(a);
+            int scoreB = _modelPriority(b);
+            if (scoreA != scoreB) return scoreA.compareTo(scoreB);
+            return b.compareTo(a); // Versioni più recenti prima
+          });
+          return parsed;
+        }
+      } else {
+        debugPrint('Gemini fetchAvailableModels: HTTP ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Errore durante il fetch dinamico dei modelli Gemini: $e');
+    }
+
+    return defaultFallbackModels;
+  }
+
+  static int _modelPriority(String model) {
+    final lower = model.toLowerCase();
+    if (lower.contains('flash-lite')) return 0;
+    if (lower.contains('flash')) return 1;
+    if (lower.contains('pro')) return 2;
+    return 3;
+  }
+
+  static const List<String> defaultFallbackModels = [
+    'gemini-3.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-3.5-flash',
+    'gemini-3-flash',
+    'gemini-2.5-flash-lite',
+  ];
 
   /// Analizza una descrizione testuale e restituisce una lista di MealItem.
   Future<List<MealItem>> analyzeTextToMeals(String text) async {

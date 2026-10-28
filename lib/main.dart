@@ -10,6 +10,7 @@ import 'data/local/entities/user_profile_entity.dart';
 import 'providers/app_state.dart';
 import 'ui/screens/main_screen.dart';
 import 'ui/screens/alimenti_screen.dart';
+import 'ui/screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -134,6 +135,7 @@ class NutrIAApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const MainScreen(),
+        '/profile': (context) => const ProfileScreen(),
         '/addMeal': (context) {
           final mealTarget = ModalRoute.of(context)?.settings.arguments as String?;
           return AlimentiScreen(initialMealTarget: mealTarget);
